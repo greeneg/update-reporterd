@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+type OrgUnit struct {
+	Id           int    `json:"Id"`
+	OrgUnitName  string `json:"orgUnitName"`
+	Description  string `json:"description"`
+	CreationDate string `json:"creationDate"`
+}
+
 type Role struct {
 	Id           int    `json:"Id"`
 	RoleName     string `json:"roleName"`
@@ -15,12 +22,15 @@ type Role struct {
 }
 
 type User struct {
-	Id           int
-	UserName     string
-	FullName     string
-	Status       string
-	RoleId       int
-	CreationDate string
+	Id                     int
+	UserName               string
+	FullName               string
+	Status                 string
+	OrgUnitId              int
+	RoleId                 int
+	PasswordHash           string
+	CreationDate           string
+	LastPasswordChangeDate string
 }
 
 func convertSqliteTimestamp(t string) string {
@@ -52,7 +62,7 @@ func getRoleStatus(role string) (bool, error) {
 	)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			errPrintln("Encountered error when querying database: " + string(err.Error()))
+			warnPrintln("Encountered error when querying database: " + string(err.Error()))
 			return false, err
 		}
 		return false, nil
@@ -103,7 +113,7 @@ func getRoleByName(roleName string) (Role, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			errPrintln("No such role found in DB: " + string(err.Error()))
+			warnPrintln("No such role found in DB: " + string(err.Error()))
 			return Role{}, nil
 		}
 		errPrintln("Cannot retrieve role from DB: " + string(err.Error()))
@@ -117,6 +127,7 @@ func getRoleByName(roleName string) (Role, error) {
 }
 
 func getAccountStatus(account string) (bool, error) {
+	println("Checking for account: " + account)
 	t, err := DB.Begin()
 	if err != nil {
 		errPrintln("Could not start DB transaction: " + string(err.Error()))
@@ -129,7 +140,8 @@ func getAccountStatus(account string) (bool, error) {
 		return false, err
 	}
 
-	err = q.QueryRow(account).Scan()
+	u := User{}
+	err = q.QueryRow(account).Scan(&u.Id, &u.UserName, &u.FullName, &u.Status, &u.OrgUnitId, &u.RoleId, &u.PasswordHash, &u.CreationDate, &u.LastPasswordChangeDate)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			errPrintln("Encountered error when querying database: " + string(err.Error()))
@@ -143,14 +155,14 @@ func getAccountStatus(account string) (bool, error) {
 	return true, nil
 }
 
-func createAccount(accountName string, accountFullName string, roleId int, passwd string) (User, error) {
+func createAccount(accountName string, accountFullName string, orgUnitId, roleId int, passwd string) (User, error) {
 	t, err := DB.Begin()
 	if err != nil {
 		errPrintln("Could not start DB transaction!" + string(err.Error()))
 		return User{}, err
 	}
 
-	q, err := t.Prepare("INSERT INTO Users (UserName, FullName, RoleId, PasswordHash) VALUES (?, ?, ?, ?)")
+	q, err := t.Prepare("INSERT INTO Users (UserName, FullName, OrgUnitId, RoleId, Status, PasswordHash) VALUES (?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		errPrintln("Could not prepare the DB query!" + string(err.Error()))
 		return User{}, err
@@ -160,9 +172,12 @@ func createAccount(accountName string, accountFullName string, roleId int, passw
 	hash := sha512.Sum512([]byte(passwd))
 	passwdHash := hex.EncodeToString(hash[:])
 
-	// get the org Id
+	// set the status to active
+	status := "active"
 
-	_, err = q.Exec(accountName, accountFullName, roleId, passwdHash)
+	// insert the user
+
+	_, err = q.Exec(accountName, accountFullName, orgUnitId, roleId, status, passwdHash)
 	if err != nil {
 		errPrintln("Cannot create user '" + accountName + "': " + string(err.Error()))
 		return User{}, err
@@ -180,7 +195,7 @@ func createAccount(accountName string, accountFullName string, roleId int, passw
 }
 
 func getAccountByName(accountName string) (User, error) {
-	rec, err := DB.Prepare("SELECT Id,UserName,FullName,Status,RoleId,CreationDate FROM Users WHERE UserName = ?")
+	rec, err := DB.Prepare("SELECT Id,UserName,FullName,Status,OrgUnitId,RoleId,CreationDate FROM Users WHERE UserName = ?")
 	if err != nil {
 		errPrintln("Could not prepare the DB query: " + string(err.Error()))
 		return User{}, err
@@ -192,19 +207,147 @@ func getAccountByName(accountName string) (User, error) {
 		&user.UserName,
 		&user.FullName,
 		&user.Status,
+		&user.OrgUnitId,
 		&user.RoleId,
 		&user.CreationDate,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			errPrintln("No such role found in DB: " + string(err.Error()))
+			warnPrintln("No such account found in DB named " + accountName + ": " + string(err.Error()))
 			return User{}, nil
 		}
-		errPrintln("Cannot retrieve role from DB: " + string(err.Error()))
+		errPrintln("Cannot retrieve account from DB named " + accountName + ": " + string(err.Error()))
 		return User{}, err
 	}
 
 	user.CreationDate = convertSqliteTimestamp(user.CreationDate)
 
 	return user, nil
+}
+
+func getOrgUnitByName(orgUnitName string) (OrgUnit, error) {
+	rec, err := DB.Prepare("SELECT * FROM OrgUnits WHERE OrgUnitName = ?")
+	if err != nil {
+		errPrintln("Could not prepare the DB query: " + string(err.Error()))
+		return OrgUnit{}, err
+	}
+
+	orgunit := OrgUnit{}
+	err = rec.QueryRow(orgUnitName).Scan(
+		&orgunit.Id,
+		&orgunit.OrgUnitName,
+		&orgunit.Description,
+		&orgunit.CreationDate,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			warnPrintln("No such role found in DB: " + string(err.Error()))
+			return OrgUnit{}, nil
+		}
+		errPrintln("Cannot retrieve role from DB: " + string(err.Error()))
+		return OrgUnit{}, err
+	}
+
+	orgunit.CreationDate = convertSqliteTimestamp(orgunit.CreationDate)
+
+	return orgunit, nil
+}
+
+func createOrgUnit(orgUnitName string, orgUnitDescription string) (bool, error) {
+	t, err := DB.Begin()
+	if err != nil {
+		errPrintln("Could not start DB transaction: " + string(err.Error()))
+		return false, err
+	}
+
+	q, err := t.Prepare("INSERT INTO OrgUnits (OrgUnitName, Description) VALUES (?, ?)")
+	if err != nil {
+		errPrintln("Could not prepare the DB query: " + string(err.Error()))
+		return false, err
+	}
+
+	_, err = q.Exec(orgUnitName, orgUnitDescription)
+	if err != nil {
+		errPrintln("Cannot create org unit '" + orgUnitName + "': " + string(err.Error()))
+		return false, err
+	}
+
+	t.Commit()
+
+	return true, nil
+}
+
+func getOrgUnitStatus(orgUnit string) (bool, error) {
+	t, err := DB.Begin()
+	if err != nil {
+		errPrintln("Could not start DB transaction: " + string(err.Error()))
+		return false, err
+	}
+
+	q, err := DB.Prepare("SELECT * FROM OrgUnits WHERE OrgUnitName IS ?")
+	if err != nil {
+		errPrintln("Could not prepare DB query! " + string(err.Error()))
+		return false, err
+	}
+
+	rr := OrgUnit{}
+	err = q.QueryRow(orgUnit).Scan(
+		&rr.Id,
+		&rr.OrgUnitName,
+		&rr.Description,
+		&rr.CreationDate,
+	)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			warnPrintln("Encountered error when querying database: " + string(err.Error()))
+			return false, err
+		}
+		return false, nil
+	}
+
+	t.Commit()
+
+	return true, nil
+}
+
+func getRoleById(roleId int) (string, error) {
+	rec, err := DB.Prepare("SELECT RoleName FROM Roles WHERE Id = ?")
+	if err != nil {
+		errPrintln("Could not prepare the DB query: " + string(err.Error()))
+		return "", err
+	}
+
+	var roleName string
+	err = rec.QueryRow(roleId).Scan(&roleName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			warnPrintln("No such role found in DB: " + string(err.Error()))
+			return "", nil
+		}
+		errPrintln("Cannot retrieve role from DB: " + string(err.Error()))
+		return "", err
+	}
+
+	return roleName, nil
+}
+
+func getOrgUnitById(orgUnitId int) (string, error) {
+	rec, err := DB.Prepare("SELECT OrgUnitName FROM OrgUnits WHERE Id = ?")
+	if err != nil {
+		errPrintln("Could not prepare the DB query: " + string(err.Error()))
+		return "", err
+	}
+
+	var orgUnitName string
+	err = rec.QueryRow(orgUnitId).Scan(&orgUnitName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			warnPrintln("No such role found in DB: " + string(err.Error()))
+			return "", nil
+		}
+		errPrintln("Cannot retrieve role from DB: " + string(err.Error()))
+		return "", err
+	}
+
+	return orgUnitName, nil
 }

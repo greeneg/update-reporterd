@@ -14,6 +14,11 @@ func errPrintln(msg string) {
 	classedPrintln("ERROR", ": FILE: "+filename+", LINE: "+strconv.Itoa(line)+", "+msg)
 }
 
+func warnPrintln(msg string) {
+	_, filename, line, _ := runtime.Caller(1)
+	classedPrintln("WARN", ": FILE: "+filename+", LINE: "+strconv.Itoa(line)+", "+msg)
+}
+
 func infoPrintln(msg string) {
 	_, filename, line, _ := runtime.Caller(1)
 	classedPrintln("INFO", ": FILE: "+filename+", LINE: "+strconv.Itoa(line)+", "+msg)

@@ -40,6 +40,12 @@ func showHelp() {
 	println("   -d|--database-file FILENAME_PATH       REQUIRED: The full or relative path")
 	println("                                          to the database file")
 	println("   -a|--account ACCOUNT_NAME              OPTIONAL: The account to create")
+	println("   -o|--orgunit ORGUNIT_NAME              OPTIONAL: The orgunit to create")
+	println("   -O|--orgunit-description ORGUNIT_DESC  CONDITIONALLY OPTIONAL: If the")
+	println("                                          orgunit flag is set, this is required.")
+	println("                                          This should be the description for")
+	println("                                          the orgunit to be registered with the")
+	println("                                          system.")
 	println("   -r|--role ROLE_NAME                    OPTIONAL: The role to create")
 	println("   -f|--fullname QUOTED_FULLNAME          CONDITIONALLY OPTIONAL: If the")
 	println("                                          account flag is set, this is required.")
@@ -65,6 +71,8 @@ func init() {
 	getopt.FlagLong(&dbFile, "database-file", 'd', "The full path to the database file")
 	getopt.FlagLong(&account, "account", 'a', "The account to add to the system")
 	getopt.FlagLong(&fullName, "fullname", 'f', "The full name to associate with the account")
+	getopt.FlagLong(&orgUnitName, "orgunit", 'o', "The orgunit to add to the system")
+	getopt.FlagLong(&orgUnitDescription, "orgunit-description", 'O', "The description of the orgunit to process")
 	getopt.FlagLong(&role, "role", 'r', "The role to add to the system")
 	getopt.FlagLong(&roleDescription, "role-description", 'D', "The description of the role to process")
 }
@@ -88,7 +96,7 @@ func main() {
 	if dbFile != "" {
 		println("Database file: " + dbFile)
 		ConnectDatabase(dbFile)
-		infoPrintln("Database connection completed")
+		println("Database connection completed")
 	} else {
 		errPrintln("Database file must be defined.")
 		showHelp()
@@ -119,10 +127,38 @@ func main() {
 		}
 	}
 
-	_, err := getAccountByName("SYSTEM")
-	if err != nil {
-		errPrintln("Encountered error when looking up the 'SYSTEM' account")
+	var orgunit OrgUnit
+	// We're working on the built-in orgunit, 'SYSTEM'
+	//
+	// first, does the SYSTEM orgunit already exist?
+	biOrgUnitState, err := getOrgUnitStatus("SYSTEM")
+	if err != nil && err != sql.ErrNoRows {
+		errPrintln("Encountered error when checking orgunit status: " + string(err.Error()))
 		os.Exit(1)
+	}
+	if !biOrgUnitState {
+		println("Creating orgunit 'SYSTEM'")
+		status, err := createOrgUnit("SYSTEM", "Built-in system orgunit")
+		if err != nil {
+			errPrintln("Encountered error when creating orgunit: " + string(err.Error()))
+			os.Exit(1)
+		}
+		if status {
+			orgunit, err = getOrgUnitByName("SYSTEM")
+			if err != nil {
+				errPrintln("Encountered error when retrieving orgunit 'SYSTEM'")
+				os.Exit(1)
+			}
+			orgunitStr, err := json.Marshal(orgunit)
+			if err != nil {
+				errPrintln("Encountered error when converting struct to JSON: " + string(err.Error()))
+				os.Exit(1)
+			}
+			println("orgunit 'SYSTEM' created: " + string(orgunitStr))
+		}
+	} else {
+		println("Built-in orgunit 'SYSTEM' already exists. Continuing")
+		orgunit, _ = getOrgUnitByName("SYSTEM")
 	}
 
 	var roleRecord Role
@@ -135,7 +171,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !biRoleState {
-		infoPrintln("Creating role 'administrators'")
+		println("Creating role 'administrators'")
 		status, err := createRole("administrators", "Accounts that have full administrative rights to the system")
 		if err != nil {
 			errPrintln("Encountered error when creating role: " + string(err.Error()))
@@ -152,10 +188,10 @@ func main() {
 				errPrintln("Encountered error when converting struct to JSON: " + string(err.Error()))
 				os.Exit(1)
 			}
-			infoPrintln("role 'administrators' created: " + string(roleRecordStr))
+			println("role 'administrators' created: " + string(roleRecordStr))
 		}
 	} else {
-		infoPrintln("Built-in role 'administrators' already exists. Continuing")
+		println("Built-in role 'administrators' already exists. Continuing")
 		roleRecord, _ = getRoleByName("administrators")
 	}
 
@@ -176,7 +212,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		accountRecord, err := createAccount("admin", "System Administrator", roleRecord.Id, string(input))
+		accountRecord, err := createAccount("admin", "System Administrator", orgunit.Id, roleRecord.Id, string(input))
 		if err != nil {
 			errPrintln("Encountered error when creating account: " + string(err.Error()))
 			os.Exit(1)
@@ -186,6 +222,16 @@ func main() {
 			errPrintln("Encountered error when converting struct to JSON: " + string(err.Error()))
 			os.Exit(1)
 		}
-		infoPrintln("account 'admin' created: " + string(accountRecordStr))
+		println("account 'admin' created: " + string(accountRecordStr))
+	} else {
+		println("Built-in account 'admin' already exists. Continuing\n")
+		userRecord, _ := getAccountByName("admin")
+		println("Account: " + userRecord.UserName)
+		println("Full Name: " + userRecord.FullName)
+		println("Status: " + userRecord.Status)
+		orgUnitName, _ := getOrgUnitById(userRecord.OrgUnitId)
+		println("OrgUnit: " + orgUnitName)
+		roleName, _ := getRoleById(userRecord.RoleId)
+		println("Role: " + roleName)
 	}
 }
