@@ -42,3 +42,7 @@ tools/update-reporter/update-reporter
 # don't ship our config.json
 config/config.json
 
+# don't track tools binaries
+tools/setuptool/setuptool
+tools/update-reporter/update-reporter
+
