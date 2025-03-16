@@ -45,6 +45,74 @@ type ProposedUser struct {
 	Password  string `json:"password"`
 }
 
+type Architecture struct {
+	Id               int    `json:"Id"`
+	ArchitectureName string `json:"architectureName"`
+	CreationDate     string `json:"creationDate"`
+}
+
+type OSFamily struct {
+	Id           int    `json:"Id"`
+	FamilyName   string `json:"familyName"`
+	CreationDate string `json:"creationDate"`
+}
+
+type OperatingSystem struct {
+	Id             int    `json:"Id"`
+	OsName         string `json:"osName"`
+	OsVersion      string `json:"osVersion"`
+	OsFamilyId     int    `json:"osFamilyId"`
+	ArchitectureId int    `json:"architectureId"`
+	CreationDate   string `json:"creationDate"`
+}
+
+type Package struct {
+	Id           int    `json:"Id"`
+	PackageName  string `json:"packageName"`
+	CreationDate string `json:"creationDate"`
+}
+
+type PackageByArch struct {
+	Id           int    `json:"Id"`
+	PackageId    int    `json:"packageName"`
+	ArchId       int    `json:"archId"`
+	CreationDate string `json:"creationDate"`
+}
+
+type PackageByPlatform struct {
+	Id           int    `json:"Id"`
+	PackageId    int    `json:"packageName"`
+	PlatformId   int    `json:"platformId"`
+	CreationDate string `json:"creationDate"`
+}
+
+type PackageByType struct {
+	Id            int    `json:"Id"`
+	PackageId     int    `json:"packageName"`
+	PackageTypeId int    `json:"typeId"`
+	CreationDate  string `json:"creationDate"`
+}
+
+type PackageByVersion struct {
+	Id           int    `json:"Id"`
+	PackageId    int    `json:"packageName"`
+	Version      string `json:"version"`
+	CreationDate string `json:"creationDate"`
+}
+
+type PackageByVersionName struct {
+	Id           int    `json:"Id"`
+	PackageName  string `json:"packageName"`
+	Version      string `json:"version"`
+	CreationDate string `json:"creationDate"`
+}
+
+type PackageType struct {
+	Id           int    `json:"Id"`
+	TypeName     string `json:"typeName"`
+	CreationDate string `json:"creationDate"`
+}
+
 type Role struct {
 	Id           int    `json:"Id"`
 	RoleName     string `json:"roleName"`
