@@ -49,7 +49,7 @@ import (
 )
 
 //	@title		Update Reporter Daemon
-//	@version	0.1.0
+//	@version	0.2.0
 //	@description	An API for Reporting Software Updates
 
 //	@contact.name	Gary Greene
@@ -67,77 +67,128 @@ import (
 
 func createDB(dbName string) (bool, error) {
 	log.Println("INFO: DB doesn't exist. Attempt to create it")
-	const schema string = `CREATE TABLE IF NOT EXISTS Architectures (
-		Id                      INTEGER		PRIMARY KEY AUTOINCREMENT	UNIQUE	NOT NULL,
-		ArchName                STRING		UNIQUE				NOT NULL,
-		CreationDate            DATETIME	NOT NULL			DEFAULT (CURRENT_TIMESTAMP)
-	);
+	const schema string = `
+PRAGMA foreign_keys = off;
+BEGIN TRANSACTION;
 
-	INSERT INTO Architectures (Id, ArchName) VALUES (1, 'noarch');
-	INSERT INTO Architectures (Id, ArchName) VALUES (2, 'aarch64');
-	INSERT INTO Architectures (Id, ArchName) VALUES (3, 'x86');
-	INSERT INTO Architectures (Id, ArchName) VALUES (4, 'x86_64');
+CREATE TABLE IF NOT EXISTS Architectures (
+    Id           INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    ArchName     STRING   UNIQUE		NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
 
-	CREATE TABLE IF NOT EXISTS OperatingSystems (
-		Id                      INTEGER		PRIMARY KEY AUTOINCREMENT	UNIQUE	NOT NULL,
-		OsIdName                STRING		NOT NULL,
-		OsVersion               STRING		NOT NULL,
-		CreationDate            DATETIME	NOT NULL			DEFAULT (CURRENT_TIMESTAMP)
-	);
+INSERT INTO Architectures (Id, ArchName, CreationDate) VALUES (1, 'noarch', '2025-03-14 13:50:42');
+INSERT INTO Architectures (Id, ArchName, CreationDate) VALUES (2, 'aarch64', '2025-03-14 13:50:42');
+INSERT INTO Architectures (Id, ArchName, CreationDate) VALUES (3, 'x86', '2025-03-14 13:50:42');
+INSERT INTO Architectures (Id, ArchName, CreationDate) VALUES (4, 'x86_64', '2025-03-14 13:50:42');
 
-	CREATE TABLE IF NOT EXISTS OsFamilies (
-		Id                      INTEGER		PRIMARY KEY AUTOINCREMENT	UNIQUE	NOT NULL,
-		FamilyName              STRING		UNIQUE				NOT NULL,
-		CreationDate            DATETIME	NOT NULL			DEFAULT (CURRENT_TIMESTAMP)
-	);
+CREATE TABLE IF NOT EXISTS OperatingSystems (
+    Id           INTEGER  PRIMARY KEY 	AUTOINCREMENT	UNIQUE	NOT NULL,
+    OsName       STRING   NOT NULL,
+    OsVersion    STRING   NOT NULL,
+    OsFamilyId   INTEGER  REFERENCES OsFamilies (Id) 	NOT NULL,
+    OsArchId     INTEGER  REFERENCES Architectures (Id) NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
 
-	INSERT INTO OsFamilies (Id, FamilyName) VALUES (1, 'linux');
-	INSERT INTO OsFamilies (Id, FamilyName) VALUES (2, 'darwin');
-	INSERT INTO OsFamilies (Id, FamilyName) VALUES (3, 'windows');
+CREATE TABLE IF NOT EXISTS OrgUnits (
+    Id           INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    OrgUnitName  STRING   UNIQUE		NOT NULL,
+    ShortName    STRING   UNIQUE		NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
 
-	CREATE TABLE IF NOT EXISTS Roles (
-		Id                      INTEGER		PRIMARY KEY AUTOINCREMENT	UNIQUE	NOT NULL,
-		RoleName                STRING		UNIQUE				NOT NULL,
-		Description             STRING		NOT NULL,
-		CreationDate            DATETIME	NOT NULL		 	DEFAULT (CURRENT_TIMESTAMP)
-	);
+CREATE TABLE IF NOT EXISTS OsFamilies (
+    Id           INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    FamilyName   STRING   UNIQUE		NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
 
-	INSERT INTO Roles (Id, RoleName, Description)
-		VALUES (1, 'SYSTEM', 'Built-in system role');
-	INSERT INTO Roles (Id, RoleName, Description)
-		VALUES (2, 'administrators', 'Accounts that have full administrative rights to the system');
+INSERT INTO OsFamilies (Id, FamilyName, CreationDate) VALUES (1, 'linux', '2025-03-14 13:50:42');
+INSERT INTO OsFamilies (Id, FamilyName, CreationDate) VALUES (2, 'darwin', '2025-03-14 13:50:42');
+INSERT INTO OsFamilies (Id, FamilyName, CreationDate) VALUES (3, 'windows', '2025-03-14 13:50:42');
 
-	CREATE TABLE IF NOT EXISTS Systems (
-		Id                      INTEGER		PRIMARY KEY AUTOINCREMENT		UNIQUE	NOT NULL,
-		FQDN                    STRING		UNIQUE					NOT NULL,
-		OsFamilyId              INTEGER		REFERENCES OsFamilies (Id)		NOT NULL,
-		OsId                    INTEGER		REFERENCES OperatingSystems (Id)	NOT NULL,
-		ArchId                  INTEGER		REFERENCES Architectures (Id)		NOT NULL,
-		CreationDate            DATETIME	NOT NULL				DEFAULT (CURRENT_TIMESTAMP)
-	);
+CREATE TABLE IF NOT EXISTS Packages (
+    Id           INTEGER  PRIMARY KEY 	AUTOINCREMENT	UNIQUE	NOT NULL,
+    Name         STRING   NOT NULL		UNIQUE,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
 
-	CREATE TABLE IF NOT EXISTS UpdateRecords (
-		Id                      INTEGER		PRIMARY KEY AUTOINCREMENT		UNIQUE	NOT NULL,
-		SystemId                INTEGER		REFERENCES Systems (Id)			UNIQUE	NOT NULL,
-		UpdateCount		INTEGER		NOT NULL,
-		UpdateRecord            JSON		NOT NULL,
-		CreationDate            INTEGER		NOT NULL				DEFAULT (CURRENT_TIMESTAMP)
-		LastUpdateDate          DATETIME	NOT NULL				DEFAULT (CURRENT_TIMESTAMP)
-	);
+CREATE TABLE IF NOT EXISTS PackagesByArchitecture (
+    Id             INTEGER  PRIMARY KEY AUTOINCREMENT	UNIQUE	NOT NULL,
+    PackageId      INTEGER  REFERENCES Packages (Id) 	  NOT NULL,
+    ArchitectureId INTEGER  REFERENCES Architectures (Id) NOT NULL,
+    CreationDate   DATETIME NOT NULL	DEFAULT (CURRENT_TIMESTAMP) 
+);
 
-	CREATE TABLE IF NOT EXISTS Users (
-		Id                      INTEGER 	PRIMARY KEY AUTOINCREMENT	UNIQUE	NOT NULL,
-		UserName                STRING		NOT NULL			UNIQUE,
-		FullName                STRING		NOT NULL,
-		Status                  STRING		NOT NULL			DEFAULT enabled,
-		RoleId                  INTEGER		REFERENCES Roles (Id)		NOT NULL,
-		PasswordHash            STRING		NOT NULL,
-		CreationDate            DATETIME	NOT NULL			DEFAULT (CURRENT_TIMESTAMP),
-		LastPasswordChangedDate DATETIME	NOT NULL			DEFAULT (CURRENT_TIMESTAMP)
-	);
+CREATE TABLE IF NOT EXISTS PackagesByPlatform (
+    Id           INTEGER  PRIMARY KEY 	AUTOINCREMENT	UNIQUE	NOT NULL,
+    PackageId    INTEGER  REFERENCES Packages (Id) 		NOT NULL,
+    PlatformId   INTEGER  REFERENCES OperatingSystems (Id)	NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
 
-	INSERT INTO Users (Id, UserName, FullName, Status, RoleId, PasswordHash)
-		VALUES (1, 'SYSTEM', 'Built-in System User', 'enabled', 1, '!');
+CREATE TABLE IF NOT EXISTS PackagesByType (
+    Id            INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    PackageId     INTEGER  REFERENCES Packages (Id)		NOT NULL,
+    PackageTypeId INTEGER  REFERENCES PackageTypes (Id)	NOT NULL,
+    CreationDate  DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
+
+CREATE TABLE IF NOT EXISTS PackagesByVersion (
+    Id             INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    PackageId      INTEGER  REFERENCES Packages (Id)	NOT NULL,
+    PackageVersion STRING   NOT NULL,
+    CreationDate   DATETIME NOT NULL	DEFAULT (CURRENT_TIMESTAMP) 
+);
+
+CREATE TABLE IF NOT EXISTS PackageTypes (
+    Id           INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    TypeName     STRING   UNIQUE		NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
+
+CREATE TABLE IF NOT EXISTS Roles (
+    Id           INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    RoleName     STRING   UNIQUE		NOT NULL,
+    Description  STRING   NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
+
+INSERT INTO Roles (Id, RoleName, Description, CreationDate) VALUES (1, 'SYSTEM', 'Built-in system role', '2025-03-14 13:50:42');
+INSERT INTO Roles (Id, RoleName, Description, CreationDate) VALUES (2, 'administrators', 'Accounts that have full administrative rights to the system', '2025-03-14 13:50:42');
+
+CREATE TABLE IF NOT EXISTS Systems (
+    Id           INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    FQDN         STRING   UNIQUE		NOT NULL,
+    OsFamilyId   INTEGER  REFERENCES OsFamilies (Id)			NOT NULL,
+    OsId         INTEGER  REFERENCES OperatingSystems (Id)		NOT NULL,
+    ArchId       INTEGER  REFERENCES Architectures (Id) 		NOT NULL,
+    CreationDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
+
+CREATE TABLE IF NOT EXISTS UpdateCount (
+    Id            INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    SystemId      INTEGER  REFERENCES Systems (Id)		NOT NULL,
+    Count         INTEGER  NOT NULL,
+    CreationDate  DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP),
+    LastCheckDate DATETIME NOT NULL		DEFAULT (CURRENT_TIMESTAMP) 
+);
+
+CREATE TABLE IF NOT EXISTS Users (
+    Id                     INTEGER  PRIMARY KEY	AUTOINCREMENT	UNIQUE	NOT NULL,
+    UserName               STRING   UNIQUE		NOT NULL,
+    FullName               STRING   NOT NULL,
+    Status                 BOOLEAN  NOT NULL,
+    OrgUnitId              INTEGER  REFERENCES OrgUnits (Id)	NOT NULL,
+    RoleId                 INTEGER  REFERENCES Roles (Id)		NOT NULL,
+    PasswordHash           STRING   NOT NULL,
+    CreationDate           DATETIME NOT NULL	DEFAULT (CURRENT_TIMESTAMP),
+    LastPasswordChangeDate DATETIME NOT NULL	DEFAULT (CURRENT_TIMESTAMP) 
+);
+
+COMMIT TRANSACTION;
+PRAGMA foreign_keys = on;
 	`
 
 	db, err := sql.Open("sqlite3", dbName)
@@ -185,19 +236,8 @@ func main() {
 	err = model.ConnectDatabase(UpdateReporter.ConfStruct.DbPath)
 	helpers.FatalCheckError(err)
 
-	// set up our static assets
-	// r.Static("/assets", "./assets")
-	// r.LoadHTMLGlob("templates/*.html")
-
 	// some defaults for using session support
 	r.Use(sessions.Sessions("session", cookie.NewStore(globals.Secret)))
-	// frontend
-	// fePublic := r.Group("/")
-	// routes.FePublicRoutes(fePublic, AllocatorD)
-
-	// fePrivate := r.Group("/")
-	// fePrivate.Use(middleware.AuthCheck)
-	// routes.FePrivateRoutes(fePrivate, AllocatorD)
 
 	// API
 	public := r.Group("/api/v1")
