@@ -8,6 +8,18 @@ import (
 	"github.com/greeneg/update-reporterd/model"
 )
 
+// CreateOS creates a new operating system
+//
+//	@Summary		Create a new operating system
+//	@Description	Create a new operating system
+//	@Tags			operatingsystems
+//	@Accept			json
+//	@Produce		json
+//	@Param			operatingsystem	body	model.OperatingSystem	true	"Operating System data"
+//	@Security		BasicAuth
+//	@Success		200	{object}	model.SuccessMsg
+//	@Failure		400	{object}	model.FailureMsg
+//	@Router			/os [post]
 func (u *UpdateReporter) CreateOS(c *gin.Context) {
 	var osf model.OperatingSystem
 	if err := c.ShouldBindJSON(&osf); err != nil {
@@ -29,6 +41,18 @@ func (u *UpdateReporter) CreateOS(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OS created"})
 }
 
+// DeleteOS deletes an operating system
+//
+//	@Summary		Delete operating system
+//	@Description	Delete an operating system
+//	@Tags			operatingsystems
+//	@Accept			json
+//	@Produce		json
+//	@Param			osId	path	int	true	"Operating System Id"
+//	@Security		BasicAuth
+//	@Success		200	{object}	model.SuccessMsg
+//	@Failure		400	{object}	model.FailureMsg
+//	@Router			/os/{osId} [delete]
 func (u *UpdateReporter) DeleteOS(c *gin.Context) {
 	osfId, err := strconv.Atoi(c.Param("osId"))
 	if err != nil {
@@ -50,6 +74,18 @@ func (u *UpdateReporter) DeleteOS(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OS deleted"})
 }
 
+// GetOSById gets an operating system by Id
+//
+//	@Summary		Get operating system by Id
+//	@Description	Get operating system by Id
+//	@Tags			operatingsystems
+//	@Accept			json
+//	@Produce		json
+//	@Param			osId	path	int	true	"Operating System Id"
+//	@Security		BasicAuth
+//	@Success		200	{object}	model.OperatingSystem
+//	@Failure		400	{object}	model.FailureMsg
+//	@Router			/os/id/{osId} [get]
 func (u *UpdateReporter) GetOSById(c *gin.Context) {
 	osId, err := strconv.Atoi(c.Param("osId"))
 	if err != nil {
@@ -66,6 +102,18 @@ func (u *UpdateReporter) GetOSById(c *gin.Context) {
 	c.JSON(http.StatusOK, osStruct)
 }
 
+// GetOSByName gets an operating system by name
+//
+//	@Summary		Get operating system by name
+//	@Description	Get operating system by name
+//	@Tags			operatingsystems
+//	@Accept			json
+//	@Produce		json
+//	@Param			osName	path	string	true	"Operating System Name"
+//	@Security		BasicAuth
+//	@Success		200	{object}	model.OperatingSystem
+//	@Failure		400	{object}	model.FailureMsg
+//	@Router			/os/name/{osName} [get]
 func (u *UpdateReporter) GetOSByName(c *gin.Context) {
 	osName := c.Param("osName")
 
@@ -78,6 +126,17 @@ func (u *UpdateReporter) GetOSByName(c *gin.Context) {
 	c.JSON(http.StatusOK, osStruct)
 }
 
+// GetOSes gets all operating systems
+//
+//	@Summary		Get all operating systems
+//	@Description	Get all operating systems
+//	@Tags			operatingsystems
+//	@Accept			json
+//	@Produce		json
+//	@Security		BasicAuth
+//	@Success		200	{object}	[]model.OperatingSystem
+//	@Failure		400	{object}	model.FailureMsg
+//	@Router			/oses [get]
 func (u *UpdateReporter) GetOSes(c *gin.Context) {
 	osStruct, err := model.GetOperatingSystems()
 	if err != nil {
