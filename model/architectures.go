@@ -5,6 +5,9 @@ import (
 	"strconv"
 )
 
+// CreateArchitecture creates a new architecture
+// param a Architecture
+// return bool, error
 func CreateArchitecture(a Architecture) (bool, error) {
 	log.Println("INFO: Architecture creation requested: " + a.ArchitectureName)
 	t, err := DB.Begin()
@@ -31,6 +34,9 @@ func CreateArchitecture(a Architecture) (bool, error) {
 	return true, nil
 }
 
+// DeleteArchitecture deletes an architecture
+// param archId int
+// return bool, error
 func DeleteArchitecture(archId int) (bool, error) {
 	archIdStr := strconv.Itoa(archId)
 	log.Println("INFO: Architecture deletion requested: " + archIdStr)
@@ -58,6 +64,9 @@ func DeleteArchitecture(archId int) (bool, error) {
 	return true, nil
 }
 
+// GetArchitectureById gets an architecture by Id
+// param archId int
+// return Architecture, error
 func GetArchitectureById(archId int) (Architecture, error) {
 	archIdStr := strconv.Itoa(archId)
 	log.Println("INFO: Architecture retrieval requested: " + archIdStr)
@@ -73,10 +82,13 @@ func GetArchitectureById(archId int) (Architecture, error) {
 	return a, nil
 }
 
+// GetArchitectureByName gets an architecture by name
+// param archName string
+// return Architecture, error
 func GetArchitectureByName(archName string) (Architecture, error) {
 	log.Println("INFO: Architecture retrieval requested: " + archName)
 	var a Architecture
-	q := "SELECT * FROM Architectures WHERE ArchitectureName IS ?"
+	q := "SELECT * FROM Architectures WHERE ArchName IS ?"
 	err := DB.QueryRow(q, archName).Scan(&a.Id, &a.ArchitectureName, &a.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': " + string(err.Error()))
@@ -87,6 +99,9 @@ func GetArchitectureByName(archName string) (Architecture, error) {
 	return a, nil
 }
 
+// GetArchitectures gets all architectures
+// param none
+// return []Architecture, error
 func GetArchitectures() ([]Architecture, error) {
 	log.Println("INFO: All architectures retrieval requested")
 	var archs []Architecture
