@@ -67,10 +67,10 @@ func (u *UpdateReporter) CreateUser(c *gin.Context) {
 //	@Tags			user
 //	@Accept			json
 //	@Produce		json
-//	@Param			name	path	string	true	"User name"
-//	@Param			changePassword	body	model.PasswordChange	true	"Password data"
-//	@Success		200	{object}	model.SuccessMsg
-//	@Failure		400	{object}	model.FailureMsg
+//	@Param			name			path		string					true	"User name"
+//	@Param			changePassword	body		model.PasswordChange	true	"Password data"
+//	@Success		200				{object}	model.SuccessMsg
+//	@Failure		400				{object}	model.FailureMsg
 //	@Router			/user/name/{name} [patch]
 func (u *UpdateReporter) ChangeAccountPassword(c *gin.Context) {
 	username := c.Param("name")
@@ -174,7 +174,7 @@ func (u *UpdateReporter) GetUserStatus(c *gin.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body	model.UserStatus	true	"User Data"
-//	@Param			name	path	string	true "User name"
+//	@Param			name	path	string				true	"User name"
 //	@Security		BasicAuth
 //	@Success		200	{object}	model.UserStatusMsg
 //	@Failure		400	{object}	model.FailureMsg
@@ -216,10 +216,10 @@ func (u *UpdateReporter) SetUserStatus(c *gin.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			roleId	body	model.UserRoleId	true	"Role Id"
-//	@Param			name	path	string	true	"User name"
+//	@Param			name	path	string				true	"User name"
 //	@Security		BasicAuth
-//	@Success		200 {object}	model.UserRoleIdMsg
-//	@Failure		400 {object}	model.FailureMsg
+//	@Success		200	{object}	model.UserRoleIdMsg
+//	@Failure		400	{object}	model.FailureMsg
 //	@Router			/user/name/{name}/roleId [patch]
 func (u *UpdateReporter) SetUserRoleId(c *gin.Context) {
 	_, authed := u.GetUserId(c)
@@ -289,15 +289,15 @@ func (u *UpdateReporter) GetUsers(c *gin.Context) {
 
 // GetUsersByRoleId Retrieve list of users by role Id
 //
-//	@Summary        Retrieve list of users by role Id
-//	@Description    Retrieve list of users by role Id
-//	@Tags           user
-//	@Produce        json
-//	@Param          roleId	path int true "Role Id"
-//	@Security	BasicAuth
-//	@Success        200 {object}	model.UsersList
-//	@Failure	400 {object}	model.FailureMsg
-//	@Router		/users/roleId/{roleId} [get]
+//	@Summary		Retrieve list of users by role Id
+//	@Description	Retrieve list of users by role Id
+//	@Tags			user
+//	@Produce		json
+//	@Param			roleId	path	int	true	"Role Id"
+//	@Security		BasicAuth
+//	@Success		200	{object}	model.UsersList
+//	@Failure		400	{object}	model.FailureMsg
+//	@Router			/users/roleId/{roleId} [get]
 func (u *UpdateReporter) GetUsersByRoleId(c *gin.Context) {
 	_, authed := u.GetUserId(c)
 	if authed {
@@ -334,7 +334,7 @@ func (u *UpdateReporter) GetUsersByRoleId(c *gin.Context) {
 //	@Description	Retrieve a user by their Id
 //	@Tags			user
 //	@Produce		json
-//	@Param			id	path int true "User ID"
+//	@Param			id	path		int	true	"User ID"
 //	@Success		200	{object}	SafeUser
 //	@Failure		400	{object}	model.FailureMsg
 //	@Router			/user/id/{id} [get]
@@ -365,9 +365,9 @@ func (u *UpdateReporter) GetUserById(c *gin.Context) {
 //	@Description	Retrieve a user by their UserName
 //	@Tags			user
 //	@Produce		json
-//	@Param			name	path	string	true	"User name"
-//	@Success		200	{object}	SafeUser
-//	@Failure		400	{object}	model.FailureMsg
+//	@Param			name	path		string	true	"User name"
+//	@Success		200		{object}	SafeUser
+//	@Failure		400		{object}	model.FailureMsg
 //	@Router			/user/name/{name} [get]
 func (u *UpdateReporter) GetUserByUserName(c *gin.Context) {
 	username := c.Param("name")
