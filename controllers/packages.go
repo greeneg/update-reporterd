@@ -252,7 +252,7 @@ func (u *UpdateReporter) GetPackageById(c *gin.Context) {
 //	@Produce		json
 //	@Param			pkgId	path	int	true	"Package Id"
 //	@Security		BasicAuth
-//	@Success		200	{object}	[]model.PackageVersion
+//	@Success		200	{object}	[]model.PackageByVersionName
 //	@Failure		400	{object}	model.FailureMsg
 //	@Failure		500	{object}	model.FailureMsg
 //	@Router			/pkg/id/{pkgId}/versions [get]
@@ -296,7 +296,7 @@ func (u *UpdateReporter) GetPackage(c *gin.Context) {
 //	@Produce		json
 //	@Param			pkgName	path	string	true	"Package Name"
 //	@Security		BasicAuth
-//	@Success		200	{object}	[]model.PackageVersion
+//	@Success		200	{object}	[]model.PackageByVersionName
 //	@Failure		400	{object}	model.FailureMsg
 //	@Failure		500	{object}	model.FailureMsg
 //	@Router			/pkg/name/{pkgName}/versions [get]
@@ -318,7 +318,7 @@ func (u *UpdateReporter) GetVersionsByName(c *gin.Context) {
 //	@Produce		json
 //	@Param			pkgPlatform	path	string	true	"Package Platform"
 //	@Security		BasicAuth
-//	@Success		200	{object}	model.Platform
+//	@Success		200	{object}	model.OperatingSystem
 //	@Failure		500	{object}	model.FailureMsg
 //	@Router			/pkg/platform/{pkgPlatform} [get]
 func (u *UpdateReporter) GetPkgPlatform(c *gin.Context) {
@@ -339,7 +339,7 @@ func (u *UpdateReporter) GetPkgPlatform(c *gin.Context) {
 //	@Produce		json
 //	@Param			pkgPlatformId	path	int	true	"Package Platform Id"
 //	@Security		BasicAuth
-//	@Success		200	{object}	model.Platform
+//	@Success		200	{object}	model.OperatingSystem
 //	@Failure		500	{object}	model.FailureMsg
 //	@Router			/pkg/platformid/{pkgPlatformId} [get]
 func (u *UpdateReporter) GetPkgPlatformById(c *gin.Context) {
