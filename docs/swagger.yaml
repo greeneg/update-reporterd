@@ -13,6 +13,15 @@ definitions:
       userName:
         type: string
     type: object
+  model.Architecture:
+    properties:
+      Id:
+        type: integer
+      architectureName:
+        type: string
+      creationDate:
+        type: string
+    type: object
   model.FailureMsg:
     properties:
       error:
@@ -30,6 +39,59 @@ definitions:
         type: string
       status:
         type: integer
+    type: object
+  model.OSFamily:
+    properties:
+      Id:
+        type: integer
+      creationDate:
+        type: string
+      familyName:
+        type: string
+    type: object
+  model.OperatingSystem:
+    properties:
+      Id:
+        type: integer
+      architectureId:
+        type: integer
+      creationDate:
+        type: string
+      osFamilyId:
+        type: integer
+      osName:
+        type: string
+      osVersion:
+        type: string
+    type: object
+  model.Package:
+    properties:
+      Id:
+        type: integer
+      creationDate:
+        type: string
+      packageName:
+        type: string
+    type: object
+  model.PackageByVersionName:
+    properties:
+      Id:
+        type: integer
+      creationDate:
+        type: string
+      packageName:
+        type: string
+      version:
+        type: string
+    type: object
+  model.PackageType:
+    properties:
+      Id:
+        type: integer
+      creationDate:
+        type: string
+      typeName:
+        type: string
     type: object
   model.PasswordChange:
     properties:
@@ -140,8 +202,140 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   title: Update Reporter Daemon
-  version: 0.1.0
+  version: 0.2.0
 paths:
+  /architecture:
+    post:
+      consumes:
+      - application/json
+      description: Create a new architecture
+      parameters:
+      - description: Architecture data
+        in: body
+        name: architecture
+        required: true
+        schema:
+          $ref: '#/definitions/model.Architecture'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Create a new architecture
+      tags:
+      - architectures
+  /architecture/{archId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an architecture
+      parameters:
+      - description: Architecture Id
+        in: path
+        name: archId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Delete architecture
+      tags:
+      - architectures
+  /architecture/id/{archId}:
+    get:
+      consumes:
+      - application/json
+      description: Get architecture by Id
+      parameters:
+      - description: Architecture Id
+        in: path
+        name: archId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Architecture'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get architecture by Id
+      tags:
+      - architectures
+  /architecture/name/{archName}:
+    get:
+      consumes:
+      - application/json
+      description: Get architecture by name
+      parameters:
+      - description: Architecture Name
+        in: path
+        name: archName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Architecture'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get architecture by name
+      tags:
+      - architectures
+  /architectures:
+    get:
+      consumes:
+      - application/json
+      description: Get all architectures
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Architecture'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all architectures
+      tags:
+      - architectures
   /health:
     get:
       description: Retrieve overall health of the service
@@ -159,6 +353,940 @@ paths:
       summary: Retrieve overall health of the service
       tags:
       - serviceHealth
+  /os:
+    post:
+      consumes:
+      - application/json
+      description: Create a new operating system
+      parameters:
+      - description: Operating System data
+        in: body
+        name: operatingsystem
+        required: true
+        schema:
+          $ref: '#/definitions/model.OperatingSystem'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Create a new operating system
+      tags:
+      - operatingsystems
+  /os/{osId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an operating system
+      parameters:
+      - description: Operating System Id
+        in: path
+        name: osId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Delete operating system
+      tags:
+      - operatingsystems
+  /os/id/{osId}:
+    get:
+      consumes:
+      - application/json
+      description: Get operating system by Id
+      parameters:
+      - description: Operating System Id
+        in: path
+        name: osId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.OperatingSystem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get operating system by Id
+      tags:
+      - operatingsystems
+  /os/name/{osName}:
+    get:
+      consumes:
+      - application/json
+      description: Get operating system by name
+      parameters:
+      - description: Operating System Name
+        in: path
+        name: osName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.OperatingSystem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get operating system by name
+      tags:
+      - operatingsystems
+  /oses:
+    get:
+      consumes:
+      - application/json
+      description: Get all operating systems
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.OperatingSystem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all operating systems
+      tags:
+      - operatingsystems
+  /osfamilies:
+    get:
+      consumes:
+      - application/json
+      description: Get all operating system families
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.OSFamily'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all operating system families
+      tags:
+      - osfamilies
+  /osfamily:
+    post:
+      consumes:
+      - application/json
+      description: Create a new operating system family
+      parameters:
+      - description: Operating System Family data
+        in: body
+        name: osfamily
+        required: true
+        schema:
+          $ref: '#/definitions/model.OSFamily'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Create a new operating system family
+      tags:
+      - osfamilies
+  /osfamily/{osfId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an operating system family
+      parameters:
+      - description: Operating System Family Id
+        in: path
+        name: osfId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Delete operating system family
+      tags:
+      - osfamilies
+  /osfamily/id/{osfId}:
+    get:
+      consumes:
+      - application/json
+      description: Get operating system family by Id
+      parameters:
+      - description: Operating System Family Id
+        in: path
+        name: osfId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.OSFamily'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get operating system family by Id
+      tags:
+      - osfamilies
+  /osfamily/name/{osfName}:
+    get:
+      consumes:
+      - application/json
+      description: Get operating system family by name
+      parameters:
+      - description: Operating System Family Name
+        in: path
+        name: osfName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.OSFamily'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get operating system family by name
+      tags:
+      - osfamilies
+  /pkg:
+    post:
+      consumes:
+      - application/json
+      description: Create new package
+      parameters:
+      - description: Package object
+        in: body
+        name: pkg
+        required: true
+        schema:
+          $ref: '#/definitions/model.Package'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Package'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Create new package
+      tags:
+      - packages
+  /pkg/arch/{pkgArch}:
+    get:
+      consumes:
+      - application/json
+      description: Get package architecture
+      parameters:
+      - description: Package Architecture
+        in: path
+        name: pkgArch
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Architecture'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package architecture
+      tags:
+      - packages
+  /pkg/archid/{pkgArchId}:
+    get:
+      consumes:
+      - application/json
+      description: Get package architecture by Id
+      parameters:
+      - description: Package Architecture Id
+        in: path
+        name: pkgArchId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Architecture'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package architecture by Id
+      tags:
+      - packages
+  /pkg/id/{pkgId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a package by Id
+      parameters:
+      - description: Package Id
+        in: path
+        name: pkgId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Delete a package by Id
+      tags:
+      - packages
+    get:
+      consumes:
+      - application/json
+      description: Get package by Id
+      parameters:
+      - description: Package Id
+        in: path
+        name: pkgId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Package'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package by Id
+      tags:
+      - packages
+  /pkg/id/{pkgId}/versions:
+    get:
+      consumes:
+      - application/json
+      description: Get all versions of a package
+      parameters:
+      - description: Package Id
+        in: path
+        name: pkgId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PackageByVersionName'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all versions of a package
+      tags:
+      - packages
+  /pkg/name/{pkgName}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a package by name
+      parameters:
+      - description: Package Name
+        in: path
+        name: pkgName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Delete a package by name
+      tags:
+      - packages
+    get:
+      consumes:
+      - application/json
+      description: Get package by name
+      parameters:
+      - description: Package Name
+        in: path
+        name: pkgName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Package'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package by name
+      tags:
+      - packages
+    patch:
+      consumes:
+      - application/json
+      description: Update a package
+      parameters:
+      - description: Package Name
+        in: path
+        name: pkgName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Package'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Update a package
+      tags:
+      - packages
+  /pkg/name/{pkgName}/versions:
+    get:
+      consumes:
+      - application/json
+      description: Get all versions of a package by name
+      parameters:
+      - description: Package Name
+        in: path
+        name: pkgName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PackageByVersionName'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all versions of a package by name
+      tags:
+      - packages
+  /pkg/platform/{pkgPlatform}:
+    get:
+      consumes:
+      - application/json
+      description: Get package platform
+      parameters:
+      - description: Package Platform
+        in: path
+        name: pkgPlatform
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.OperatingSystem'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package platform
+      tags:
+      - packages
+  /pkg/platformid/{pkgPlatformId}:
+    get:
+      consumes:
+      - application/json
+      description: Get package platform by Id
+      parameters:
+      - description: Package Platform Id
+        in: path
+        name: pkgPlatformId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.OperatingSystem'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package platform by Id
+      tags:
+      - packages
+  /pkg/type/{pkgType}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a package type by Id
+      parameters:
+      - description: Package Type Id
+        in: path
+        name: pkgType
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/model.SuccessMsg'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Delete a package type by Id
+      tags:
+      - packages
+    get:
+      consumes:
+      - application/json
+      description: Get package type
+      parameters:
+      - description: Package Type
+        in: path
+        name: pkgType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PackageType'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package type
+      tags:
+      - packages
+    post:
+      consumes:
+      - application/json
+      description: Create new package type
+      parameters:
+      - description: Package Type object
+        in: body
+        name: pkgType
+        required: true
+        schema:
+          $ref: '#/definitions/model.PackageType'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.PackageType'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Create new package type
+      tags:
+      - packages
+  /pkg/typeid/{pkgTypeId}:
+    get:
+      consumes:
+      - application/json
+      description: Get package type by Id
+      parameters:
+      - description: Package Type Id
+        in: path
+        name: pkgTypeId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PackageType'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get package type by Id
+      tags:
+      - packages
+  /pkgs:
+    get:
+      consumes:
+      - application/json
+      description: Get all packages
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Package'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all packages
+      tags:
+      - packages
+  /pkgs/arch/{pkgArch}:
+    get:
+      consumes:
+      - application/json
+      description: Get all packages by architecture
+      parameters:
+      - description: Package Architecture
+        in: path
+        name: pkgArch
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Package'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all packages by architecture
+      tags:
+      - packages
+  /pkgs/archid/{pkgArchId}:
+    get:
+      consumes:
+      - application/json
+      description: Get all packages by architecture Id
+      parameters:
+      - description: Package Architecture Id
+        in: path
+        name: pkgArchId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Package'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all packages by architecture Id
+      tags:
+      - packages
+  /pkgs/platform/{pkgPlatform}:
+    get:
+      consumes:
+      - application/json
+      description: Get all packages by platform
+      parameters:
+      - description: Package Platform
+        in: path
+        name: pkgPlatform
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Package'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all packages by platform
+      tags:
+      - packages
+  /pkgs/platformid/{pkgPlatformId}:
+    get:
+      consumes:
+      - application/json
+      description: Get all packages by platform Id
+      parameters:
+      - description: Package Platform Id
+        in: path
+        name: pkgPlatformId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Package'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all packages by platform Id
+      tags:
+      - packages
+  /pkgs/type/{pkgType}:
+    get:
+      consumes:
+      - application/json
+      description: Get all packages by type
+      parameters:
+      - description: Package Type
+        in: path
+        name: pkgType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Package'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all packages by type
+      tags:
+      - packages
+  /pkgs/typeid/{pkgTypeId}:
+    get:
+      consumes:
+      - application/json
+      description: Get all packages by type Id
+      parameters:
+      - description: Package Type Id
+        in: path
+        name: pkgTypeId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Package'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.FailureMsg'
+      security:
+      - BasicAuth: []
+      summary: Get all packages by type Id
+      tags:
+      - packages
   /role:
     post:
       consumes:
