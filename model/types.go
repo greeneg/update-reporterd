@@ -124,6 +124,15 @@ type RolesList struct {
 	Data []Role `json:"data"`
 }
 
+type System struct {
+	Id             int    `json:"Id"`
+	Fqdn           string `json:"fqdn"`
+	OSFamilyId     int    `json:"osFamilyId"`
+	OSId           int    `json:"osId"`
+	ArchitectureId int    `json:"architectureId"`
+	CreationDate   string `json:"creationDate"`
+}
+
 type User struct {
 	Id                      int    `json:"Id"`
 	UserName                string `json:"userName"`
