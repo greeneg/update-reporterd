@@ -4,4 +4,12 @@ go 1.23.0
 
 require github.com/Showmax/go-fqdn v1.0.0
 
-require github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
+require (
+	github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
+	github.com/pborman/getopt/v2 v2.1.0
+)
+
+require (
+	github.com/greeneg/update-reporterd v0.0.0-20250316214241-649b8e77ac13
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
+)
