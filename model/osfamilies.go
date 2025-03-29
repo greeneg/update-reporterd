@@ -62,8 +62,8 @@ func GetOSFamilyById(osfId int) (OSFamily, error) {
 	osfIdStr := strconv.Itoa(osfId)
 	log.Println("INFO: OS Family retrieval requested: " + osfIdStr)
 	var osf OSFamily
-	q := "SELECT FamilyName FROM OSFamilies WHERE Id IS ?"
-	err := DB.QueryRow(q, osfId).Scan(&osf.FamilyName)
+	q := "SELECT * FROM OSFamilies WHERE Id IS ?"
+	err := DB.QueryRow(q, osfId).Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS Family '" + osfIdStr + "': " + string(err.Error()))
 		return osf, err
@@ -76,8 +76,8 @@ func GetOSFamilyById(osfId int) (OSFamily, error) {
 func GetOSFamilyByName(osfName string) (OSFamily, error) {
 	log.Println("INFO: OS Family retrieval requested: " + osfName)
 	var osf OSFamily
-	q := "SELECT Id FROM OSFamilies WHERE FamilyName IS ?"
-	err := DB.QueryRow(q, osfName).Scan(&osf.Id)
+	q := "SELECT * FROM OSFamilies WHERE FamilyName IS ?"
+	err := DB.QueryRow(q, osfName).Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS Family '" + osfName + "': " + string(err.Error()))
 		return osf, err
