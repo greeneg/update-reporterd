@@ -18,6 +18,22 @@ package model
 
 */
 
+type UnknownSystemById struct {
+	Err error
+}
+
+func (u *UnknownSystemById) Error() string {
+	return "Unknown system!"
+}
+
+type UnknownSystemByName struct {
+	Err error
+}
+
+func (u *UnknownSystemByName) Error() string {
+	return "Unknown system!"
+}
+
 type InvalidStatusValue struct {
 	Err error
 }

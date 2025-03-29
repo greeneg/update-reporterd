@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"log"
 	"strconv"
 )
@@ -134,7 +135,7 @@ func GetSystemById(sysId int) (System, error) {
 		}
 	} else {
 		log.Println("ERROR: No system found with id " + strconv.Itoa(sysId))
-		return System{}, nil
+		return System{}, &UnknownSystemById{Err: errors.New("No system found with id " + strconv.Itoa(sysId))}
 	}
 
 	if err = rows.Err(); err != nil {
@@ -175,7 +176,7 @@ func GetSystemByName(sysName string) (System, error) {
 		}
 	} else {
 		log.Println("ERROR: No system found with name " + sysName)
-		return System{}, nil
+		return System{}, &UnknownSystemByName{Err: errors.New("No system found with name " + sysName)}
 	}
 
 	if err = rows.Err(); err != nil {
