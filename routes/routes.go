@@ -73,6 +73,14 @@ func PrivateRoutes(g *gin.RouterGroup, u *controllers.UpdateReporter) {
 	g.GET("/role/name/:roleName", u.GetRoleByName) // get role by name
 	g.POST("/role", u.CreateRole)                  // create new role
 	g.DELETE("/role/:roleId", u.DeleteRole)        // delete a role by Id
+	// systems
+	g.GET("/systems", u.GetSystems)                              // get all systems
+	g.GET("/system/id/:sysId", u.GetSystemById)                  // get system by Id
+	g.GET("/system/name/:sysName", u.GetSystemByName)            // get system by name
+	g.GET("/system/os/:sysOsFamilyId", u.GetSystemsByOsFamilyId) // get all systems by OS family Id
+	g.GET("/system/arch/:sysArchId", u.GetSystemsByArchId)       // get all systems by architecture Id
+	g.POST("/system", u.CreateSystem)                            // create new system
+	g.DELETE("/system/:sysId", u.DeleteSystem)                   // delete a system by Id
 	// user related routes
 	g.GET("/users", u.GetUsers)                          // get all users
 	g.GET("/users/roleId/:roleId", u.GetUsersByRoleId)   // get all users by role Id
