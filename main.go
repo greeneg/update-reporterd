@@ -48,8 +48,8 @@ import (
 	"github.com/greeneg/update-reporterd/routes"
 )
 
-//	@title		Update Reporter Daemon
-//	@version	0.2.0
+//	@title			Update Reporter Daemon
+//	@version		0.3.0
 //	@description	An API for Reporting Software Updates
 
 //	@contact.name	Gary Greene
