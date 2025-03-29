@@ -13,7 +13,7 @@ func CreateOperatingSystem(o OperatingSystem) (bool, error) {
 		return false, err
 	}
 
-	q, err := t.Prepare("INSERT INTO OperatingSystems (OSName, OSFamilyId, ArchitectureId) VALUES (?, ?, ?)")
+	q, err := t.Prepare("INSERT INTO OperatingSystems (OsName, OsVersion, OsFamilyId, OsArchId) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return false, err
@@ -63,7 +63,7 @@ func GetOperatingSystemById(osId int) (OperatingSystem, error) {
 	log.Println("INFO: OS retrieval requested: " + osIdStr)
 	var osStruct OperatingSystem
 
-	q := "SELECT Id, OSName, OSVersion, OSFamilyId, ArchitectureId, CreationDate FROM OperatingSystems WHERE Id = ?"
+	q := "SELECT Id, OsName, OsVersion, OsFamilyId, OsArchId, CreationDate FROM OperatingSystems WHERE Id = ?"
 	err := DB.QueryRow(q, osId).Scan(&osStruct.Id, &osStruct.OsName, &osStruct.OsVersion, &osStruct.OsFamilyId, &osStruct.ArchitectureId, &osStruct.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS '" + osIdStr + "': " + string(err.Error()))
@@ -78,7 +78,7 @@ func GetOperatingSystemByName(osName string) (OperatingSystem, error) {
 	log.Println("INFO: OS retrieval requested: " + osName)
 	var osStruct OperatingSystem
 
-	q := "SELECT Id, OSName, OSVersion, OSFamilyId, ArchitectureId, CreationDate FROM OperatingSystems WHERE OSName = ?"
+	q := "SELECT Id, OsName, OsVersion, OsFamilyId, OsArchId, CreationDate FROM OperatingSystems WHERE OSName = ?"
 	err := DB.QueryRow(q, osName).Scan(&osStruct.Id, &osStruct.OsName, &osStruct.OsVersion, &osStruct.OsFamilyId, &osStruct.ArchitectureId, &osStruct.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS '" + osName + "': " + string(err.Error()))
@@ -94,7 +94,7 @@ func GetOperatingSystems() ([]OperatingSystem, error) {
 	var osStruct OperatingSystem
 	var osList []OperatingSystem
 
-	q := "SELECT Id, OSName, OSVersion, OSFamilyId, ArchitectureId, CreationDate FROM OperatingSystems"
+	q := "SELECT Id, OsName, OsVersion, OsFamilyId, OsArchId, CreationDate FROM OperatingSystems"
 	rows, err := DB.Query(q)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS list: " + string(err.Error()))
