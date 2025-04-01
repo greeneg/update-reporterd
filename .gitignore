@@ -38,6 +38,8 @@ tools/update-reporter/update-reporter
 
 # don't track the DB itself
 *.db
+*.db-shm
+*.db-wal
 
 # don't ship our config.json
 config/config.json
