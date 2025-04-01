@@ -113,6 +113,13 @@ type PackageType struct {
 	CreationDate string `json:"creationDate"`
 }
 
+type ProposedSystem struct {
+	Fqdn           string `json:"fqdn"`
+	OSFamilyId     int    `json:"osFamilyId"`
+	OSId           int    `json:"osId"`
+	ArchitectureId int    `json:"architectureId"`
+}
+
 type Role struct {
 	Id           int    `json:"Id"`
 	RoleName     string `json:"roleName"`

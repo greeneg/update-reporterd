@@ -21,24 +21,27 @@ import (
 //	@Failure		400	{object}	model.FailureMsg
 //	@Router			/system [post]
 func (u *UpdateReporter) CreateSystem(c *gin.Context) {
-	var sys model.System
+	var sys model.ProposedSystem
 	if err := c.ShouldBindJSON(&sys); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ok, err := model.CreateSystem(sys)
+	status, err := model.CreateSystem(sys)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err.Error() == "UNIQUE constraint failed: Systems.FQDN" {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "System already exists"})
+			return
+		}
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create system"})
+	if status {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create system"})
 		return
+	} else {
+		c.IndentedJSON(http.StatusOK, gin.H{"status": "System created"})
 	}
-
-	c.JSON(http.StatusOK, gin.H{"status": "System created"})
 }
 
 // DeleteSystem deletes a system
@@ -62,6 +65,10 @@ func (u *UpdateReporter) DeleteSystem(c *gin.Context) {
 
 	ok, err := model.DeleteSystem(sysId)
 	if err != nil {
+		if err.Error() == "Unknown system!" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "System not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -105,8 +112,14 @@ func (u *UpdateReporter) GetSystemByName(c *gin.Context) {
 
 	sys, err := model.GetSystemByName(sysName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		if err.Error() == "Unknown system!" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "System not found"})
+			return
+		} else {
+			// If it's a different error, return a 500
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, sys)

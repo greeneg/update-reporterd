@@ -27,6 +27,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -233,8 +234,10 @@ func main() {
 		}
 	}
 
+	fmt.Println("INFO: DB file exists, connecting to it: " + UpdateReporter.ConfStruct.DbPath)
 	err = model.ConnectDatabase(UpdateReporter.ConfStruct.DbPath)
 	helpers.FatalCheckError(err)
+	defer model.DB.Close()
 
 	// some defaults for using session support
 	r.Use(sessions.Sessions("session", cookie.NewStore(globals.Secret)))

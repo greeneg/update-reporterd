@@ -29,18 +29,21 @@ import (
 )
 
 func getStoredPasswordHash(username string) (string, error) {
-	q, err := DB.Prepare("SELECT PasswordHash FROM Users WHERE UserName = ?")
+	stmt, err := DB.Prepare("SELECT PasswordHash FROM Users WHERE UserName = ?")
 	if err != nil {
 		return "", err
 	}
+	defer stmt.Close()
 
 	passwordHash := ""
-	err = q.QueryRow(username).Scan(
-		&passwordHash,
-	)
+	r, err := stmt.Query(username)
 	if err != nil {
 		return "", err
 	}
+	defer r.Close()
+	r.Scan(
+		&passwordHash,
+	)
 
 	return passwordHash, nil
 }
@@ -50,6 +53,15 @@ func storeNewPassword(hashedPassword string, username string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during password change: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	// now we need to create a new transaction to SET the password hash into the DB
 	q, err := DB.Prepare("UPDATE Users SET PasswordHash = ?, LastPasswordChangedDate = ? WHERE UserName = ?")
@@ -65,7 +77,11 @@ func storeNewPassword(hashedPassword string, username string) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Could not commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	return true, nil
 }
@@ -104,14 +120,26 @@ func ChangeAccountPassword(username string, oldPassword string, newPassword stri
 
 func GetUserById(id int) (User, error) {
 	log.Println("INFO: User by Id requested: " + strconv.Itoa(id))
-	rec, err := DB.Prepare("SELECT * FROM Users WHERE Id = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Users WHERE Id = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return User{}, err
 	}
+	defer stmt.Close()
 
 	user := User{}
-	err = rec.QueryRow(id).Scan(
+	r, err := stmt.Query(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("ERROR: No such user found in DB: " + string(err.Error()))
+			return User{}, nil
+		}
+		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
+		return User{}, err
+	}
+	defer r.Close()
+
+	r.Scan(
 		&user.Id,
 		&user.UserName,
 		&user.FullName,
@@ -121,14 +149,6 @@ func GetUserById(id int) (User, error) {
 		&user.CreationDate,
 		&user.LastPasswordChangedDate,
 	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("ERROR: No such user found in DB: " + string(err.Error()))
-			return User{}, nil
-		}
-		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
-		return User{}, err
-	}
 
 	user.CreationDate = ConvertSqliteTimestamp(user.CreationDate)
 	user.LastPasswordChangedDate = ConvertSqliteTimestamp(user.LastPasswordChangedDate)
@@ -138,24 +158,15 @@ func GetUserById(id int) (User, error) {
 
 func GetUserByUserName(username string) (User, error) {
 	log.Println("INFO: User by username requested: " + username)
-	rec, err := DB.Prepare("SELECT * FROM Users WHERE UserName = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Users WHERE UserName = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return User{}, err
 	}
+	defer stmt.Close()
 
 	user := User{}
-	err = rec.QueryRow(username).Scan(
-		&user.Id,
-		&user.UserName,
-		&user.FullName,
-		&user.Status,
-		&user.OrgUnitId,
-		&user.RoleId,
-		&user.PasswordHash,
-		&user.CreationDate,
-		&user.LastPasswordChangedDate,
-	)
+	r, err := stmt.Query(username)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("ERROR: No such user found in DB: " + string(err.Error()))
@@ -163,6 +174,25 @@ func GetUserByUserName(username string) (User, error) {
 		}
 		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
 		return User{}, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		err = r.Scan(
+			&user.Id,
+			&user.UserName,
+			&user.FullName,
+			&user.Status,
+			&user.OrgUnitId,
+			&user.RoleId,
+			&user.PasswordHash,
+			&user.CreationDate,
+			&user.LastPasswordChangedDate,
+		)
+		if err != nil {
+			log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
+			return User{}, err
+		}
 	}
 
 	user.CreationDate = ConvertSqliteTimestamp(user.CreationDate)
@@ -178,6 +208,15 @@ func CreateUser(p ProposedUser) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during user creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := t.Prepare("INSERT INTO Users (UserName, PasswordHash) VALUES (?, ?)")
 	if err != nil {
@@ -195,7 +234,11 @@ func CreateUser(p ProposedUser) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Could not commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: User '" + p.UserName + "' created")
 	return true, nil
@@ -208,6 +251,15 @@ func DeleteUser(username string) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during user deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := DB.Prepare("DELETE FROM Users WHERE UserName IS ?")
 	if err != nil {
@@ -221,7 +273,11 @@ func DeleteUser(username string) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Could not commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: User '" + username + "' has been deleted")
 	return true, nil
@@ -229,16 +285,17 @@ func DeleteUser(username string) (bool, error) {
 
 func GetUsers() ([]User, error) {
 	log.Println("INFO: List of user object requested")
-	rows, err := DB.Query("SELECT * FROM Users")
+	stmt, err := DB.Query("SELECT * FROM Users")
 	if err != nil {
 		log.Println("ERROR: Could not run the DB query!" + string(err.Error()))
 		return nil, err
 	}
+	defer stmt.Close()
 
 	users := make([]User, 0)
-	for rows.Next() {
+	for stmt.Next() {
 		user := User{}
-		err = rows.Scan(
+		err = stmt.Scan(
 			&user.Id,
 			&user.UserName,
 			&user.FullName,
@@ -266,16 +323,17 @@ func GetUsers() ([]User, error) {
 
 func GetUsersByRoleId(roleId int) ([]User, error) {
 	log.Println("INFO: List user objects based on role Id")
-	rows, err := DB.Query("SELECT * FROM Users WHERE RoleId IS ?", roleId)
+	stmt, err := DB.Query("SELECT * FROM Users WHERE RoleId IS ?", roleId)
 	if err != nil {
 		log.Println("ERROR: Could not prepare DB query! " + string(err.Error()))
 		return []User{}, err
 	}
+	defer stmt.Close()
 
 	users := make([]User, 0)
-	for rows.Next() {
+	for stmt.Next() {
 		user := User{}
-		err := rows.Scan(
+		err := stmt.Scan(
 			&user.Id,
 			&user.UserName,
 			&user.FullName,
@@ -301,28 +359,23 @@ func GetUsersByRoleId(roleId int) ([]User, error) {
 
 func GetUserStatus(username string) (string, error) {
 	log.Println("INFO: User status requested for user '" + username + "'")
-	t, err := DB.Begin()
-	if err != nil {
-		log.Println("ERROR: Could not start DB transaction: " + string(err.Error()))
-		return "", err
-	}
-
-	q, err := DB.Prepare("SELECT Status FROM Users WHERE UserName IS ?")
+	stmt, err := DB.Prepare("SELECT Status FROM Users WHERE UserName IS ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare DB query! " + string(err.Error()))
 		return "", err
 	}
+	defer stmt.Close()
 
 	status := ""
-	err = q.QueryRow(username).Scan(
-		&status,
-	)
+	r, err := stmt.Query(username)
 	if err != nil {
 		log.Println("ERROR: Could not query status for user '" + username + "': " + string(err.Error()))
 		return "", err
 	}
-
-	t.Commit()
+	defer r.Close()
+	r.Scan(
+		&status,
+	)
 
 	log.Println("INFO: User '" + username + "' status: " + status)
 	return status, nil
@@ -330,17 +383,13 @@ func GetUserStatus(username string) (string, error) {
 
 func SetUserStatus(username string, j UserStatus) (bool, error) {
 	log.Println("INFO: Set user status for user '" + username + "'")
-	t, err := DB.Begin()
-	if err != nil {
-		log.Println("ERROR: Could not start DB transaction: " + string(err.Error()))
-		return false, err
-	}
-
-	q, err := DB.Prepare("UPDATE Users SET Status = ? WHERE UserName = ?")
+	stmt, err := DB.Prepare("UPDATE Users SET Status = ? WHERE UserName = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare DB query! " + string(err.Error()))
 		return false, err
 	}
+	defer stmt.Close()
+
 	// ensure the UserStatus.Status value is either 'enabled' or 'locked'
 	log.Println("INFO: user to set status of: " + username)
 	log.Println("INFO: requested state to set user to: " + j.Status)
@@ -348,7 +397,7 @@ func SetUserStatus(username string, j UserStatus) (bool, error) {
 		return false, &InvalidStatusValue{Err: errors.New("invalid value: " + j.Status)}
 	}
 
-	result, err := q.Exec(j.Status, username)
+	result, err := stmt.Exec(j.Status, username)
 	if err != nil {
 		log.Println("ERROR: Could not execute query for user '" + username + "': " + string(err.Error()))
 		return false, err
@@ -357,8 +406,6 @@ func SetUserStatus(username string, j UserStatus) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	t.Commit()
 
 	log.Println("INFO: SQL result: Rows: " + strconv.Itoa(int(numberOfRows)))
 	return true, nil
@@ -371,6 +418,15 @@ func SetUserRoleId(username string, j UserRoleId) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction: " + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during setting user role Id: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := DB.Prepare("UPDATE Users SET RoleId = ? WHERE UserName = ?")
 	if err != nil {
@@ -387,7 +443,12 @@ func SetUserRoleId(username string, j UserRoleId) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Could not commit the DB transaction: " + string(err.Error()))
+		return false, err
+	}
+
 	log.Println("INFO: SQL result: Rows: " + strconv.Itoa(int(numberOfRows)))
 	return true, nil
 }

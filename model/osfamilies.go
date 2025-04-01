@@ -12,6 +12,15 @@ func CreateOSFamily(o OSFamily) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during OS Family creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := t.Prepare("INSERT INTO OSFamilies (FamilyName) VALUES (?)")
 	if err != nil {
@@ -25,7 +34,11 @@ func CreateOSFamily(o OSFamily) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: OS Family '" + o.FamilyName + "' created")
 	return true, nil
@@ -39,6 +52,15 @@ func DeleteOSFamily(osfId int) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during OS Family deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := DB.Prepare("DELETE FROM OSFamilies WHERE Id IS ?")
 	if err != nil {
@@ -52,7 +74,11 @@ func DeleteOSFamily(osfId int) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: OS Family with Id '" + osfIdStr + "' has been deleted")
 	return true, nil
@@ -63,7 +89,14 @@ func GetOSFamilyById(osfId int) (OSFamily, error) {
 	log.Println("INFO: OS Family retrieval requested: " + osfIdStr)
 	var osf OSFamily
 	q := "SELECT * FROM OSFamilies WHERE Id IS ?"
-	err := DB.QueryRow(q, osfId).Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
+	r, err := DB.Query(q, osfId)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve OS Family '" + osfIdStr + "': " + string(err.Error()))
+		return osf, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS Family '" + osfIdStr + "': " + string(err.Error()))
 		return osf, err
@@ -77,7 +110,14 @@ func GetOSFamilyByName(osfName string) (OSFamily, error) {
 	log.Println("INFO: OS Family retrieval requested: " + osfName)
 	var osf OSFamily
 	q := "SELECT * FROM OSFamilies WHERE FamilyName IS ?"
-	err := DB.QueryRow(q, osfName).Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
+	r, err := DB.Query(q, osfName)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve OS Family '" + osfName + "': " + string(err.Error()))
+		return osf, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS Family '" + osfName + "': " + string(err.Error()))
 		return osf, err
@@ -97,6 +137,7 @@ func GetOSFamilies() ([]OSFamily, error) {
 		log.Println("ERROR: Cannot retrieve os families: " + string(err.Error()))
 		return osfs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var o OSFamily

@@ -12,6 +12,15 @@ func CreateOperatingSystem(o OperatingSystem) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during OS creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := t.Prepare("INSERT INTO OperatingSystems (OsName, OsVersion, OsFamilyId, OsArchId) VALUES (?, ?, ?, ?)")
 	if err != nil {
@@ -25,7 +34,11 @@ func CreateOperatingSystem(o OperatingSystem) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: OS '" + o.OsName + "' created")
 	return true, nil
@@ -39,6 +52,15 @@ func DeleteOperatingSystem(osId int) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during OS deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := t.Prepare("DELETE FROM OperatingSystems WHERE Id = ?")
 	if err != nil {
@@ -52,7 +74,11 @@ func DeleteOperatingSystem(osId int) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: OS '" + osIdStr + "' deleted")
 	return true, nil
@@ -64,10 +90,19 @@ func GetOperatingSystemById(osId int) (OperatingSystem, error) {
 	var osStruct OperatingSystem
 
 	q := "SELECT Id, OsName, OsVersion, OsFamilyId, OsArchId, CreationDate FROM OperatingSystems WHERE Id = ?"
-	err := DB.QueryRow(q, osId).Scan(&osStruct.Id, &osStruct.OsName, &osStruct.OsVersion, &osStruct.OsFamilyId, &osStruct.ArchitectureId, &osStruct.CreationDate)
+	r, err := DB.Query(q, osId)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS '" + osIdStr + "': " + string(err.Error()))
 		return osStruct, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		err = r.Scan(&osStruct.Id, &osStruct.OsName, &osStruct.OsVersion, &osStruct.OsFamilyId, &osStruct.ArchitectureId, &osStruct.CreationDate)
+		if err != nil {
+			log.Println("ERROR: Cannot retrieve OS '" + osIdStr + "': " + string(err.Error()))
+			return osStruct, err
+		}
 	}
 
 	log.Println("INFO: OS '" + osIdStr + "' retrieved")
@@ -79,10 +114,19 @@ func GetOperatingSystemByName(osName string) (OperatingSystem, error) {
 	var osStruct OperatingSystem
 
 	q := "SELECT Id, OsName, OsVersion, OsFamilyId, OsArchId, CreationDate FROM OperatingSystems WHERE OSName = ?"
-	err := DB.QueryRow(q, osName).Scan(&osStruct.Id, &osStruct.OsName, &osStruct.OsVersion, &osStruct.OsFamilyId, &osStruct.ArchitectureId, &osStruct.CreationDate)
+	r, err := DB.Query(q, osName)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS '" + osName + "': " + string(err.Error()))
 		return osStruct, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		err = r.Scan(&osStruct.Id, &osStruct.OsName, &osStruct.OsVersion, &osStruct.OsFamilyId, &osStruct.ArchitectureId, &osStruct.CreationDate)
+		if err != nil {
+			log.Println("ERROR: Cannot retrieve OS '" + osName + "': " + string(err.Error()))
+			return osStruct, err
+		}
 	}
 
 	log.Println("INFO: OS '" + osName + "' retrieved")
@@ -100,6 +144,7 @@ func GetOperatingSystems() ([]OperatingSystem, error) {
 		log.Println("ERROR: Cannot retrieve OS list: " + string(err.Error()))
 		return osList, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		err = rows.Scan(&osStruct.Id, &osStruct.OsName, &osStruct.OsVersion, &osStruct.OsFamilyId, &osStruct.ArchitectureId, &osStruct.CreationDate)

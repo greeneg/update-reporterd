@@ -15,6 +15,15 @@ func CreateArchitecture(a Architecture) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during architecture creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := t.Prepare("INSERT INTO Architectures (ArchitectureName) VALUES (?)")
 	if err != nil {
@@ -28,7 +37,11 @@ func CreateArchitecture(a Architecture) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: Architecture '" + a.ArchitectureName + "' created")
 	return true, nil
@@ -45,6 +58,15 @@ func DeleteArchitecture(archId int) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during architecture deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := DB.Prepare("DELETE FROM Architectures WHERE Id IS ?")
 	if err != nil {
@@ -58,7 +80,11 @@ func DeleteArchitecture(archId int) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: Architecture with Id '" + archIdStr + "' has been deleted")
 	return true, nil
@@ -72,9 +98,20 @@ func GetArchitectureById(archId int) (Architecture, error) {
 	log.Println("INFO: Architecture retrieval requested: " + archIdStr)
 	var a Architecture
 	q := "SELECT * FROM Architectures WHERE Id IS ?"
-	err := DB.QueryRow(q, archId).Scan(&a.Id, &a.ArchitectureName, &a.CreationDate)
+	r, err := DB.Query(q, archId)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve architecture '" + archIdStr + "': " + string(err.Error()))
+		return a, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&a.Id, &a.ArchitectureName, &a.CreationDate)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve architecture '" + archIdStr + "': " + string(err.Error()))
+		return a, err
+	}
+	if a.Id == 0 {
+		log.Println("ERROR: Cannot retrieve architecture '" + archIdStr + "': Architecture not found")
 		return a, err
 	}
 
@@ -89,9 +126,24 @@ func GetArchitectureByName(archName string) (Architecture, error) {
 	log.Println("INFO: Architecture retrieval requested: " + archName)
 	var a Architecture
 	q := "SELECT * FROM Architectures WHERE ArchName IS ?"
-	err := DB.QueryRow(q, archName).Scan(&a.Id, &a.ArchitectureName, &a.CreationDate)
+	r, err := DB.Query(q, archName)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': " + string(err.Error()))
+		return a, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&a.Id, &a.ArchitectureName, &a.CreationDate)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': " + string(err.Error()))
+		return a, err
+	}
+	if a.Id == 0 {
+		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': Architecture not found")
+		return a, err
+	}
+	if a.ArchitectureName == "" {
+		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': Architecture not found")
 		return a, err
 	}
 
@@ -111,6 +163,7 @@ func GetArchitectures() ([]Architecture, error) {
 		log.Println("ERROR: Cannot retrieve architectures: " + string(err.Error()))
 		return archs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var a Architecture

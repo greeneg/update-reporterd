@@ -6,15 +6,25 @@ import (
 	"strconv"
 )
 
-func CreateSystem(s System) (bool, error) {
+func CreateSystem(s ProposedSystem) (bool, error) {
 	log.Println("INFO: System creation requested: " + s.Fqdn)
 	t, err := DB.Begin()
 	if err != nil {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during system creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Error occurred during system creation: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
 
-	q, err := t.Prepare("INSERT INTO Systems (FQDN, OSFamilyId, OsId, ArchId) VALUES (?, ?, ?, ?)")
+	q, err := t.Prepare("INSERT INTO Systems (FQDN, OsFamilyId, OsId, ArchId) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return false, err
@@ -26,7 +36,11 @@ func CreateSystem(s System) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: System '" + s.Fqdn + "' created")
 	return true, nil
@@ -41,6 +55,15 @@ func DeleteSystem(sysId int) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during system deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := t.Prepare("DELETE FROM Systems WHERE Id = ?")
 	if err != nil {
@@ -48,13 +71,26 @@ func DeleteSystem(sysId int) (bool, error) {
 		return false, err
 	}
 
-	_, err = q.Exec(sysId)
+	res, err := q.Exec(sysId)
 	if err != nil {
 		log.Println("ERROR: Cannot delete system '" + sysIdStr + "': " + string(err.Error()))
 		return false, err
 	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		log.Println("ERROR: Cannot get the number of affected rows: " + string(err.Error()))
+		return false, err
+	}
+	if rows == 0 {
+		log.Println("ERROR: No system found with id " + sysIdStr)
+		return false, &UnknownSystemById{Err: errors.New("No system found with id " + sysIdStr)}
+	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: System '" + sysIdStr + "' deleted")
 	return true, nil
@@ -62,19 +98,15 @@ func DeleteSystem(sysId int) (bool, error) {
 
 func GetSystems() ([]System, error) {
 	log.Println("INFO: System list requested")
-	t, err := DB.Begin()
-	if err != nil {
-		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
-		return nil, err
-	}
 
-	q, err := t.Prepare("SELECT * FROM Systems")
+	stmt, err := DB.Prepare("SELECT * FROM Systems")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return nil, err
 	}
+	defer stmt.Close()
 
-	rows, err := q.Query()
+	rows, err := stmt.Query()
 	if err != nil {
 		log.Println("ERROR: Cannot query systems: " + string(err.Error()))
 		return nil, err
@@ -107,19 +139,14 @@ func GetSystems() ([]System, error) {
 
 func GetSystemById(sysId int) (System, error) {
 	log.Println("INFO: System requested: " + strconv.Itoa(sysId))
-	t, err := DB.Begin()
-	if err != nil {
-		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
-		return System{}, err
-	}
-
-	q, err := t.Prepare("SELECT * FROM Systems WHERE Id = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Systems WHERE Id = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return System{}, err
 	}
+	defer stmt.Close()
 
-	rows, err := q.Query(sysId)
+	rows, err := stmt.Query(sysId)
 	if err != nil {
 		log.Println("ERROR: Cannot query system: " + string(err.Error()))
 		return System{}, err
@@ -148,19 +175,14 @@ func GetSystemById(sysId int) (System, error) {
 
 func GetSystemByName(sysName string) (System, error) {
 	log.Println("INFO: System requested: " + sysName)
-	t, err := DB.Begin()
-	if err != nil {
-		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
-		return System{}, err
-	}
-
-	q, err := t.Prepare("SELECT * FROM Systems WHERE FQDN = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Systems WHERE FQDN = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return System{}, err
 	}
+	defer stmt.Close()
 
-	rows, err := q.Query(sysName)
+	rows, err := stmt.Query(sysName)
 	if err != nil {
 		log.Println("ERROR: Cannot query system: " + string(err.Error()))
 		return System{}, err
@@ -176,7 +198,7 @@ func GetSystemByName(sysName string) (System, error) {
 		}
 	} else {
 		log.Println("ERROR: No system found with name " + sysName)
-		return System{}, &UnknownSystemByName{Err: errors.New("No system found with name " + sysName)}
+		return System{}, &UnknownSystemByName{}
 	}
 
 	if err = rows.Err(); err != nil {
@@ -189,19 +211,14 @@ func GetSystemByName(sysName string) (System, error) {
 
 func GetSystemsByArchId(archId int) ([]System, error) {
 	log.Println("INFO: System list requested by architecture id: " + strconv.Itoa(archId))
-	t, err := DB.Begin()
-	if err != nil {
-		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
-		return nil, err
-	}
-
-	q, err := t.Prepare("SELECT * FROM Systems WHERE ArchId = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Systems WHERE ArchId = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return nil, err
 	}
+	defer stmt.Close()
 
-	rows, err := q.Query(archId)
+	rows, err := stmt.Query(archId)
 	if err != nil {
 		log.Println("ERROR: Cannot query systems: " + string(err.Error()))
 		return nil, err
@@ -234,19 +251,14 @@ func GetSystemsByArchId(archId int) ([]System, error) {
 
 func GetSystemsByOsFamilyId(osfId int) ([]System, error) {
 	log.Println("INFO: System list requested by OS family id: " + strconv.Itoa(osfId))
-	t, err := DB.Begin()
-	if err != nil {
-		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
-		return nil, err
-	}
-
-	q, err := t.Prepare("SELECT * FROM Systems WHERE OSFamilyId = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Systems WHERE OSFamilyId = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return nil, err
 	}
+	defer stmt.Close()
 
-	rows, err := q.Query(osfId)
+	rows, err := stmt.Query(osfId)
 	if err != nil {
 		log.Println("ERROR: Cannot query systems: " + string(err.Error()))
 		return nil, err

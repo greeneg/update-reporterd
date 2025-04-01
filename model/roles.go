@@ -31,6 +31,15 @@ func CreateRole(r Role) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during role creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := t.Prepare("INSERT INTO Roles (RoleName, Description) VALUES (?, ?)")
 	if err != nil {
@@ -44,7 +53,11 @@ func CreateRole(r Role) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Could not commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: User '" + r.RoleName + "' created")
 	return true, nil
@@ -57,6 +70,15 @@ func DeleteRole(roleId int) (bool, error) {
 		log.Println("ERROR: Could not start DB transaction!" + string(err.Error()))
 		return false, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during role deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			t.Rollback()
+		}
+	}()
 
 	q, err := DB.Prepare("DELETE FROM Roles WHERE Id IS ?")
 	if err != nil {
@@ -70,7 +92,11 @@ func DeleteRole(roleId int) (bool, error) {
 		return false, err
 	}
 
-	t.Commit()
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Could not commit the DB transaction!" + string(err.Error()))
+		return false, err
+	}
 
 	log.Println("INFO: Role with Id '" + strconv.Itoa(roleId) + "' has been deleted")
 	return true, nil
@@ -83,6 +109,7 @@ func GetRoles() ([]Role, error) {
 		log.Println("ERROR: Could not run the DB query!" + string(err.Error()))
 		return nil, err
 	}
+	defer rows.Close()
 
 	roles := make([]Role, 0)
 	for rows.Next() {
@@ -109,19 +136,15 @@ func GetRoles() ([]Role, error) {
 
 func GetRoleById(id int) (Role, error) {
 	log.Println("INFO: Role by Id requested: " + strconv.Itoa(id))
-	rec, err := DB.Prepare("SELECT * FROM Roles WHERE Id = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Roles WHERE Id = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return Role{}, err
 	}
+	defer stmt.Close()
 
 	role := Role{}
-	err = rec.QueryRow(id).Scan(
-		&role.Id,
-		&role.RoleName,
-		&role.Description,
-		&role.CreationDate,
-	)
+	r, err := stmt.Query(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("ERROR: No such user found in DB: " + string(err.Error()))
@@ -130,6 +153,13 @@ func GetRoleById(id int) (Role, error) {
 		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
 		return Role{}, err
 	}
+	r.Scan(
+		&role.Id,
+		&role.RoleName,
+		&role.Description,
+		&role.CreationDate,
+	)
+	defer r.Close()
 
 	role.CreationDate = ConvertSqliteTimestamp(role.CreationDate)
 
@@ -138,19 +168,15 @@ func GetRoleById(id int) (Role, error) {
 
 func GetRoleByName(roleName string) (Role, error) {
 	log.Println("INFO: Role by Id requested: " + roleName)
-	rec, err := DB.Prepare("SELECT * FROM Roles WHERE RoleName = ?")
+	stmt, err := DB.Prepare("SELECT * FROM Roles WHERE RoleName = ?")
 	if err != nil {
 		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return Role{}, err
 	}
+	defer stmt.Close()
 
 	role := Role{}
-	err = rec.QueryRow(roleName).Scan(
-		&role.Id,
-		&role.RoleName,
-		&role.Description,
-		&role.CreationDate,
-	)
+	r, err := stmt.Query(roleName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("ERROR: No such user found in DB: " + string(err.Error()))
@@ -159,6 +185,13 @@ func GetRoleByName(roleName string) (Role, error) {
 		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
 		return Role{}, err
 	}
+	defer r.Close()
+	r.Scan(
+		&role.Id,
+		&role.RoleName,
+		&role.Description,
+		&role.CreationDate,
+	)
 
 	role.CreationDate = ConvertSqliteTimestamp(role.CreationDate)
 
