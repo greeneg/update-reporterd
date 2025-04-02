@@ -126,23 +126,25 @@ func GetArchitectureByName(archName string) (Architecture, error) {
 	log.Println("INFO: Architecture retrieval requested: " + archName)
 	var a Architecture
 	q := "SELECT * FROM Architectures WHERE ArchName IS ?"
-	r, err := DB.Query(q, archName)
+	rows, err := DB.Query(q, archName)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': " + string(err.Error()))
 		return a, err
 	}
-	defer r.Close()
+	defer rows.Close()
 
-	err = r.Scan(&a.Id, &a.ArchitectureName, &a.CreationDate)
-	if err != nil {
+	for rows.Next() {
+		err = rows.Scan(&a.Id, &a.ArchitectureName, &a.CreationDate)
+		if err != nil {
+			log.Println("ERROR: Cannot retrieve architecture '" + archName + "': " + string(err.Error()))
+			return a, err
+		}
+	}
+	if err = rows.Err(); err != nil {
 		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': " + string(err.Error()))
 		return a, err
 	}
 	if a.Id == 0 {
-		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': Architecture not found")
-		return a, err
-	}
-	if a.ArchitectureName == "" {
 		log.Println("ERROR: Cannot retrieve architecture '" + archName + "': Architecture not found")
 		return a, err
 	}
