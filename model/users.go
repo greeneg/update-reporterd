@@ -31,6 +31,7 @@ import (
 func getStoredPasswordHash(username string) (string, error) {
 	stmt, err := DB.Prepare("SELECT PasswordHash FROM Users WHERE UserName = ?")
 	if err != nil {
+		log.Println("ERROR: Could not prepare the DB query!" + string(err.Error()))
 		return "", err
 	}
 	defer stmt.Close()
@@ -38,13 +39,24 @@ func getStoredPasswordHash(username string) (string, error) {
 	passwordHash := ""
 	r, err := stmt.Query(username)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("ERROR: No such user found in DB: " + string(err.Error()))
+			return "", nil
+		}
+		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
 		return "", err
 	}
 	defer r.Close()
-	r.Scan(
+
+	err = r.Scan(
 		&passwordHash,
 	)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve password hash from DB: " + string(err.Error()))
+		return "", err
+	}
 
+	log.Println("INFO: Retrieved password hash for user '" + username + "'")
 	return passwordHash, nil
 }
 
@@ -83,6 +95,7 @@ func storeNewPassword(hashedPassword string, username string) (bool, error) {
 		return false, err
 	}
 
+	log.Println("INFO: Password hash for user '" + username + "' updated")
 	return true, nil
 }
 
@@ -139,7 +152,7 @@ func GetUserById(id int) (User, error) {
 	}
 	defer r.Close()
 
-	r.Scan(
+	err = r.Scan(
 		&user.Id,
 		&user.UserName,
 		&user.FullName,
@@ -149,10 +162,15 @@ func GetUserById(id int) (User, error) {
 		&user.CreationDate,
 		&user.LastPasswordChangedDate,
 	)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
+		return User{}, err
+	}
 
 	user.CreationDate = ConvertSqliteTimestamp(user.CreationDate)
 	user.LastPasswordChangedDate = ConvertSqliteTimestamp(user.LastPasswordChangedDate)
 
+	log.Println("INFO: User '" + user.UserName + "' retrieved")
 	return user, nil
 }
 
@@ -198,6 +216,7 @@ func GetUserByUserName(username string) (User, error) {
 	user.CreationDate = ConvertSqliteTimestamp(user.CreationDate)
 	user.LastPasswordChangedDate = ConvertSqliteTimestamp(user.LastPasswordChangedDate)
 
+	log.Println("INFO: User '" + user.UserName + "' retrieved")
 	return user, nil
 }
 
@@ -373,9 +392,14 @@ func GetUserStatus(username string) (string, error) {
 		return "", err
 	}
 	defer r.Close()
-	r.Scan(
+
+	err = r.Scan(
 		&status,
 	)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve user status from DB: " + string(err.Error()))
+		return "", err
+	}
 
 	log.Println("INFO: User '" + username + "' status: " + status)
 	return status, nil
@@ -404,6 +428,7 @@ func SetUserStatus(username string, j UserStatus) (bool, error) {
 	}
 	numberOfRows, err := result.RowsAffected()
 	if err != nil {
+		log.Println("ERROR: Could not get number of rows affected: " + string(err.Error()))
 		return false, err
 	}
 
@@ -440,6 +465,7 @@ func SetUserRoleId(username string, j UserRoleId) (bool, error) {
 	}
 	numberOfRows, err := result.RowsAffected()
 	if err != nil {
+		log.Println("ERROR: Could not get number of rows affected: " + string(err.Error()))
 		return false, err
 	}
 

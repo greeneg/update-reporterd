@@ -117,20 +117,10 @@ func GetOSFamilyByName(osfName string) (OSFamily, error) {
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		err = rows.Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
-		if err != nil {
-			log.Println("ERROR: Cannot retrieve OS Family '" + osfName + "': " + string(err.Error()))
-			return osf, err
-		}
-	}
-	if err = rows.Err(); err != nil {
+	err = rows.Scan(&osf.Id, &osf.FamilyName, &osf.CreationDate)
+	if err != nil {
 		log.Println("ERROR: Cannot retrieve OS Family '" + osfName + "': " + string(err.Error()))
 		return osf, err
-	}
-	if osf.Id == 0 {
-		log.Println("ERROR: OS Family '" + osfName + "' not found")
-		return osf, nil
 	}
 
 	log.Println("INFO: OS Family '" + osfName + "' retrieved")

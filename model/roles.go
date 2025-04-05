@@ -153,16 +153,22 @@ func GetRoleById(id int) (Role, error) {
 		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
 		return Role{}, err
 	}
-	r.Scan(
+	defer r.Close()
+
+	err = r.Scan(
 		&role.Id,
 		&role.RoleName,
 		&role.Description,
 		&role.CreationDate,
 	)
-	defer r.Close()
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
+		return Role{}, err
+	}
 
 	role.CreationDate = ConvertSqliteTimestamp(role.CreationDate)
 
+	log.Println("INFO: Role '" + role.RoleName + "' retrieved")
 	return role, nil
 }
 
@@ -186,14 +192,20 @@ func GetRoleByName(roleName string) (Role, error) {
 		return Role{}, err
 	}
 	defer r.Close()
-	r.Scan(
+
+	err = r.Scan(
 		&role.Id,
 		&role.RoleName,
 		&role.Description,
 		&role.CreationDate,
 	)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve user from DB: " + string(err.Error()))
+		return Role{}, err
+	}
 
 	role.CreationDate = ConvertSqliteTimestamp(role.CreationDate)
 
+	log.Println("INFO: Role '" + role.RoleName + "' retrieved")
 	return role, nil
 }

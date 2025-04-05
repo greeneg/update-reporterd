@@ -16,6 +16,7 @@ func GetPackages() ([]Package, error) {
 		log.Println("ERROR: Cannot retrieve os families: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p Package
@@ -47,6 +48,7 @@ func GetPkgsByArch(pkgArch string) ([]Package, error) {
 		log.Println("ERROR: Cannot retrieve packages: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p PackageByArch
@@ -84,6 +86,7 @@ func GetPkgsByArchId(pkgArchId int) ([]Package, error) {
 		log.Println("ERROR: Cannot retrieve packages: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p PackageByArch
@@ -120,6 +123,7 @@ func GetPkgsByPlatform(pkgPlatform string) ([]Package, error) {
 		log.Println("ERROR: Cannot retrieve packages: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var pkgPlat PackageByPlatform
@@ -157,6 +161,7 @@ func GetPkgsByPlatformId(pkgPlatformId int) ([]Package, error) {
 		log.Println("ERROR: Cannot retrieve packages: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var pkgPlat PackageByPlatform
@@ -193,6 +198,7 @@ func GetPkgsByType(pkgType string) ([]Package, error) {
 		log.Println("ERROR: Cannot retrieve packages: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p PackageByType
@@ -224,6 +230,7 @@ func GetPkgsByTypeId(pkgTypeId int) ([]Package, error) {
 		log.Println("ERROR: Cannot retrieve packages: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p PackageByType
@@ -250,7 +257,14 @@ func GetPackageById(pkgId int) (Package, error) {
 
 	var p Package
 	q := "SELECT * FROM Packages WHERE Id IS ?"
-	err := DB.QueryRow(q, pkgId).Scan(&p.Id, &p.PackageName, &p.CreationDate)
+	r, err := DB.Query(q, pkgId)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package '" + pkgIdStr + "': " + string(err.Error()))
+		return p, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&p.Id, &p.PackageName, &p.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve package '" + pkgIdStr + "': " + string(err.Error()))
 		return p, err
@@ -265,11 +279,14 @@ func GetPackage(pkgName string) (Package, error) {
 
 	var p Package
 	q := "SELECT * FROM Packages WHERE PackageName IS ?"
-	err := DB.QueryRow(q, pkgName).Scan(&p.Id, &p.PackageName, &p.CreationDate)
+	r, err := DB.Query(q, pkgName)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve package '" + pkgName + "': " + string(err.Error()))
 		return p, err
 	}
+	defer r.Close()
+
+	r.Scan(&p.Id, &p.PackageName, &p.CreationDate)
 
 	log.Println("INFO: Package '" + p.PackageName + "' retrieved")
 	return p, nil
@@ -285,6 +302,7 @@ func GetPkgVersionsById(pkgId string) ([]PackageByVersionName, error) {
 		log.Println("ERROR: Cannot retrieve package versions: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p PackageByVersion
@@ -322,6 +340,7 @@ func GetVersionsByName(pkgName string) ([]PackageByVersionName, error) {
 		log.Println("ERROR: Cannot retrieve package versions: " + string(err.Error()))
 		return pkgs, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var p PackageByVersion
@@ -347,8 +366,16 @@ func GetPkgTypeByName(pkgType string) (PackageType, error) {
 	log.Println("INFO: Package type retrieval requested: " + pkgType)
 
 	var p PackageType
+
 	q := "SELECT * FROM PackageTypes WHERE Name IS ?"
-	err := DB.QueryRow(q, pkgType).Scan(&p.Id, &p.TypeName, &p.CreationDate)
+	r, err := DB.Query(q, pkgType)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package type '" + pkgType + "': " + string(err.Error()))
+		return p, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&p.Id, &p.TypeName, &p.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve package type '" + pkgType + "': " + string(err.Error()))
 		return p, err
@@ -364,7 +391,14 @@ func GetPkgTypeById(pkgTypeId int) (PackageType, error) {
 
 	var p PackageType
 	q := "SELECT * FROM PackageTypes WHERE Id IS ?"
-	err := DB.QueryRow(q, pkgTypeId).Scan(&p.Id, &p.TypeName, &p.CreationDate)
+	r, err := DB.Query(q, pkgTypeId)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package type '" + pkgTypeStr + "': " + string(err.Error()))
+		return p, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&p.Id, &p.TypeName, &p.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve package type '" + pkgTypeStr + "': " + string(err.Error()))
 		return p, err
@@ -379,7 +413,14 @@ func GetPkgPlatform(pkgPlatform string) (OperatingSystem, error) {
 
 	var p OperatingSystem
 	q := "SELECT * FROM OperatingSystems WHERE OSName IS ?"
-	err := DB.QueryRow(q, pkgPlatform).Scan(&p.Id, &p.OsName, &p.OsVersion, &p.OsFamilyId, &p.ArchitectureId, &p.CreationDate)
+	r, err := DB.Query(q, pkgPlatform)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package platform '" + pkgPlatform + "': " + string(err.Error()))
+		return p, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&p.Id, &p.OsName, &p.OsVersion, &p.OsFamilyId, &p.ArchitectureId, &p.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve package platform '" + pkgPlatform + "': " + string(err.Error()))
 		return p, err
@@ -394,8 +435,16 @@ func GetPkgPlatformById(pkgPlatformId int) (OperatingSystem, error) {
 	log.Println("INFO: Package platform retrieval requested: " + pkgPlatformStr)
 
 	var p OperatingSystem
+
 	q := "SELECT * FROM OperatingSystems WHERE Id IS ?"
-	err := DB.QueryRow(q, pkgPlatformId).Scan(&p.Id, &p.OsName, &p.OsVersion, &p.OsFamilyId, &p.ArchitectureId, &p.CreationDate)
+	r, err := DB.Query(q, pkgPlatformId)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package platform '" + pkgPlatformStr + "': " + string(err.Error()))
+		return p, err
+	}
+	defer r.Close()
+
+	err = r.Scan(&p.Id, &p.OsName, &p.OsVersion, &p.OsFamilyId, &p.ArchitectureId, &p.CreationDate)
 	if err != nil {
 		log.Println("ERROR: Cannot retrieve package platform '" + pkgPlatformStr + "': " + string(err.Error()))
 		return p, err
@@ -410,10 +459,37 @@ func CreatePackage(pkg *Package) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO Packages (PackageName, CreationDate) VALUES (?, ?)"
-	_, err := DB.Exec(q, pkg.PackageName, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO Packages (PackageName, CreationDate) VALUES (?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package creation: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkg.PackageName, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -432,10 +508,37 @@ func CreatePackageByArch(pkg *PackageByArch) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO PackagesByArchitecture (PackageId, ArchId, CreationDate) VALUES (?, ?, ?)"
-	_, err = DB.Exec(q, pkg.PackageId, arch.Id, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO PackagesByArchitecture (PackageId, ArchId, CreationDate) VALUES (?, ?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package creation: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkg.PackageId, pkg.ArchId, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -460,10 +563,35 @@ func CreatePackageByPlatform(pkg *PackageByPlatform) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO PackagesByPlatform (PackageId, PlatformId, CreationDate) VALUES (?, ?, ?)"
-	_, err = DB.Exec(q, pkg.PackageId, plat.Id, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO PackagesByPlatform (PackageId, PlatformId, CreationDate) VALUES (?, ?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package by platform creation: " + string(err.Error()))
+		return err
+	}
+	_, err = q.Exec(pkg.PackageId, pkg.PlatformId, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package by platform creation: " + string(err.Error()))
+		return err
+	}
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -488,10 +616,37 @@ func CreatePackageByType(pkg *PackageByType) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO PackagesByType (PackageId, PackageTypeId, CreationDate) VALUES (?, ?, ?)"
-	_, err = DB.Exec(q, pkg.PackageId, pkg.PackageTypeId, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO PackagesByType (PackageId, PackageTypeId, CreationDate) VALUES (?, ?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package by type creation: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkg.PackageId, pkg.PackageTypeId, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package by type creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -511,14 +666,47 @@ func CreatePackageVersion(pkgVersion *PackageByVersion) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO PackagesByVersion (PackageId, Version, CreationDate) VALUES (?, ?, ?)"
-	_, err := DB.Exec(q, pkgVersion.PackageId, pkgVersion.Version, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package version: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package version creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package version: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO PackagesByVersion (PackageId, Version, CreationDate) VALUES (?, ?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package version creation: " + string(err.Error()))
 		return err
 	}
 
-	log.Println("INFO: Package version '" + pkgVersion.Version + "' created")
+	_, err = q.Exec(pkgVersion.PackageId, pkgVersion.Version, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package version creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
+		return err
+	}
+
+	pkg, err := GetPackageById(pkgVersion.PackageId)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package: " + string(err.Error()))
+		return err
+	}
+
+	log.Println("INFO: Package '" + pkg.PackageName + "' version '" + pkgVersion.Version + "' created")
 	return nil
 }
 
@@ -533,14 +721,47 @@ func CreatePackageVersionByName(pkgName, pkgVersion string) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO PackagesByVersion (PackageId, Version, CreationDate) VALUES (?, ?, ?)"
-	_, err = DB.Exec(q, pkg.Id, pkgVersion, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package version: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package version creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package version: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO PackagesByVersion (PackageId, Version, CreationDate) VALUES (?, ?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package version creation: " + string(err.Error()))
 		return err
 	}
 
-	log.Println("INFO: Package version '" + pkgVersion + "' created")
+	_, err = q.Exec(pkg.Id, pkgVersion, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package version creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
+		return err
+	}
+
+	pkgStruct, err := GetPackageById(pkg.Id)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package: " + string(err.Error()))
+		return err
+	}
+
+	log.Println("INFO: Package '" + pkgStruct.PackageName + "' version '" + pkgVersion + "' created")
 	return nil
 }
 
@@ -549,10 +770,37 @@ func CreatePkgType(pkgType *PackageType) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO PackageTypes (Name, CreationDate) VALUES (?, ?)"
-	_, err := DB.Exec(q, pkgType.TypeName, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package type: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package type creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package type: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO PackageTypes (Name, CreationDate) VALUES (?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package type creation: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkgType.TypeName, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package type creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -565,10 +813,37 @@ func CreatePkgTypeByName(pkgTypeName string) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO PackageTypes (Name, CreationDate) VALUES (?, ?)"
-	_, err := DB.Exec(q, pkgTypeName, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package type: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package type creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package type: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO PackageTypes (Name, CreationDate) VALUES (?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package type creation: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkgTypeName, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package type creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -581,10 +856,37 @@ func CreatePkgPlatform(pkgPlatform *OperatingSystem) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO OperatingSystems (OSName, OSVersion, OSFamilyId, ArchitectureId, CreationDate) VALUES (?, ?, ?, ?, ?)"
-	_, err := DB.Exec(q, pkgPlatform.OsName, pkgPlatform.OsVersion, pkgPlatform.OsFamilyId, pkgPlatform.ArchitectureId, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package platform: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package platform creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package platform: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO OperatingSystems (OSName, OSVersion, OSFamilyId, ArchitectureId, CreationDate) VALUES (?, ?, ?, ?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package platform creation: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkgPlatform.OsName, pkgPlatform.OsVersion, pkgPlatform.OsFamilyId, pkgPlatform.ArchitectureId, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package platform creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -597,10 +899,37 @@ func CreatePkgPlatformByName(pkgPlatformName string) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "INSERT INTO OperatingSystems (OSName, CreationDate) VALUES (?, ?)"
-	_, err := DB.Exec(q, pkgPlatformName, sqliteTimeStamp)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot create package platform: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package platform creation: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot create package platform: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("INSERT INTO OperatingSystems (OSName, CreationDate) VALUES (?, ?)")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package platform creation: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkgPlatformName, sqliteTimeStamp)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package platform creation: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -613,10 +942,37 @@ func UpdatePkg(pkg *Package) error {
 
 	sqliteTimeStamp := ConvertSqliteTimestamp(time.Now().String())
 
-	q := "UPDATE Packages SET PackageName = ?, CreationDate = ? WHERE Id IS ?"
-	_, err := DB.Exec(q, pkg.PackageName, sqliteTimeStamp, pkg.Id)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot update package: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package update: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot update package: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("UPDATE Packages SET PackageName = ?, CreationDate = ? WHERE Id IS ?")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package update: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkg.PackageName, sqliteTimeStamp, pkg.Id)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package update: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -628,10 +984,37 @@ func DeletePkg(pkgId int) error {
 	pkgIdStr := strconv.Itoa(pkgId)
 	log.Println("INFO: Package deletion requested: " + pkgIdStr)
 
-	q := "DELETE FROM Packages WHERE Id IS ?"
-	_, err := DB.Exec(q, pkgId)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot delete package: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot delete package: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("DELETE FROM Packages WHERE Id IS ?")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package deletion: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkgId)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package deletion: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -642,10 +1025,37 @@ func DeletePkg(pkgId int) error {
 func DeletePkgByName(pkgName string) error {
 	log.Println("INFO: Package deletion requested: " + pkgName)
 
-	q := "DELETE FROM Packages WHERE PackageName IS ?"
-	_, err := DB.Exec(q, pkgName)
+	t, err := DB.Begin()
+	if err != nil {
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot delete package: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("DELETE FROM Packages WHERE PackageName IS ?")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package deletion: " + string(err.Error()))
+		return err
+	}
+
+	_, err = q.Exec(pkgName)
 	if err != nil {
 		log.Println("ERROR: Cannot delete package: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
 		return err
 	}
 
@@ -657,13 +1067,44 @@ func DeletePkgType(pkgTypeId int) error {
 	pkgTypeIdStr := strconv.Itoa(pkgTypeId)
 	log.Println("INFO: Package type deletion requested: " + pkgTypeIdStr)
 
-	q := "DELETE FROM PackageTypes WHERE Id IS ?"
-	_, err := DB.Exec(q, pkgTypeId)
+	t, err := DB.Begin()
 	if err != nil {
-		log.Println("ERROR: Cannot delete package type: " + string(err.Error()))
+		log.Println("ERROR: Cannot begin transaction: " + string(err.Error()))
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("ERROR: Panic occurred during package type deletion: " + string(r.(error).Error()))
+			t.Rollback()
+		}
+		if err != nil {
+			log.Println("ERROR: Cannot delete package type: " + string(err.Error()))
+			t.Rollback()
+		}
+	}()
+
+	q, err := DB.Prepare("DELETE FROM PackageTypes WHERE Id IS ?")
+	if err != nil {
+		log.Println("ERROR: Cannot prepare package type deletion: " + string(err.Error()))
 		return err
 	}
 
-	log.Println("INFO: Package type '" + pkgTypeIdStr + "' deleted")
+	_, err = q.Exec(pkgTypeId)
+	if err != nil {
+		log.Println("ERROR: Cannot execute package type deletion: " + string(err.Error()))
+		return err
+	}
+
+	err = t.Commit()
+	if err != nil {
+		log.Println("ERROR: Cannot commit transaction: " + string(err.Error()))
+		return err
+	}
+	pkgType, err := GetPkgTypeById(pkgTypeId)
+	if err != nil {
+		log.Println("ERROR: Cannot retrieve package type: " + string(err.Error()))
+		return err
+	}
+	log.Println("INFO: Package type '" + pkgType.TypeName + "' deleted")
 	return nil
 }
